@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход — Тракер на състави</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+    <style>
+        button:not(.secondary):not(.outline),
+        [role="button"]:not(.secondary):not(.outline) {
+            background-color: #5c8216;
+            border-color: #5c8216;
+            color: #ffffff;
+        }
+        button:not(.secondary):not(.outline):hover,
+        [role="button"]:not(.secondary):not(.outline):hover {
+            background-color: #4a6a12;
+            border-color: #4a6a12;
+        }
+        a { color: #5c8216; }
+        a:hover { color: #4a6a12; }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 24rem;
+        }
+        .login-card hgroup {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .login-card hgroup h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .login-card hgroup p {
+            color: var(--pico-muted-color);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <article class="login-card">
+            <hgroup>
+                <img src="/images/logo-full.png" alt="Тракер на състави"
+                     style="display: block; width: 120px; height: 120px; margin: 0 auto 1rem;">
+                <h1>Тракер на състави</h1>
+                <p>Влез с твоя акаунт</p>
+            </hgroup>
+
+            {#if error}
+            <div role="alert" data-theme="light">
+                <p><strong>Грешно потребителско име или парола.</strong></p>
+            </div>
+            {/if}
+
+            <form method="post" action="/j_security_check">
+                <label for="username">Потребителско име</label>
+                <input type="text" id="username" name="j_username"
+                       autocomplete="username" autofocus required>
+
+                <label for="password">Парола</label>
+                <input type="password" id="password" name="j_password"
+                       autocomplete="current-password" required>
+
+                <button type="submit">Вход</button>
+            </form>
+
+            <a href="/" class="back-link">← Обратно към началото</a>
+        </article>
+    </main>
+</body>
+</html>

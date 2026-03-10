@@ -1,0 +1,85 @@
+{#include layout}
+
+{#nav}
+    <ul>
+        <li><a href="/login" role="button">Вход</a></li>
+    </ul>
+{/nav}
+
+{#footerNote}Само за информационни цели.{/footerNote}
+
+{#styles}
+    .hero {
+        text-align: center;
+        padding-block: 4rem 3rem;
+    }
+    .hero h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    .hero p {
+        font-size: 1.15rem;
+        color: var(--pico-muted-color);
+        max-width: 42rem;
+        margin-inline: auto;
+        margin-bottom: 2rem;
+    }
+    .features {
+        padding-block: 2rem 4rem;
+    }
+    .features h2 {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+    }
+    .grid article { margin: 0; }
+    .grid article h3 { margin-bottom: 0.5rem; }
+    .grid article p {
+        color: var(--pico-muted-color);
+        font-size: 0.95rem;
+        margin: 0;
+    }
+{/styles}
+
+{#main}
+    <section class="hero">
+        <hgroup>
+            <img src="/images/logo-full.png" alt="Тракер на състави"
+                 style="width: 120px; height: 120px; margin-bottom: 1rem;">
+            <h1>Съставите на БФС лигите</h1>
+            <p>
+                Автоматично извличане на стартовите състави от официалния сайт на БФС —
+                елитни младежки лиги и трите мъжки нива, всеки ден.
+            </p>
+        </hgroup>
+        <a href="/login" role="button">Влез в системата</a>
+    </section>
+
+    <section class="features">
+        <h2>Какво предлага системата</h2>
+        <div class="grid">
+            <article>
+                <h3>Младежки лиги</h3>
+                <p>U15, U16, U17, U18 и U19 елитни лиги — пълни стартови състави за всеки изигран мач.</p>
+            </article>
+            <article>
+                <h3>Мъжки лиги</h3>
+                <p>Първа, Втора и Трета лига — ежедневно обновяване на съставите след всеки кръг.</p>
+            </article>
+            <article>
+                <h3>История на играч</h3>
+                <p>Потърси играч по ime и виж пълна история на участията му по мачове и сезони.</p>
+            </article>
+            <article>
+                <h3>Статистики по отбор</h3>
+                <p>Преглед на използваните формации, брой мачове и ротации на съставите за всеки отбор.</p>
+            </article>
+        </div>
+    </section>
+{/main}
+
+{/include}

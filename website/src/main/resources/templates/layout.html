@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{#insert title}Тракер на състави{/insert}</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+    <style>
+        :root { --pico-font-size: 16px; }
+
+        body > header { padding-block: 0; padding-inline: 1.5rem; }
+        body > header nav { padding-block: 0; }
+        body > header nav ul { padding-block: 0.1rem; margin: 0; }
+
+        body > header nav > ul > li > strong,
+        body > header nav > ul > li > details > summary,
+        body > header nav > ul > li > a {
+            color: #ffffff !important;
+        }
+
+        body > header nav li details > ul > li > a,
+        body > header nav li details > ul > li > strong {
+            color: #333333 !important;
+        }
+
+        button:not(.secondary):not(.outline),
+        [role="button"]:not(.secondary):not(.outline) {
+            background-color: #5c8216;
+            border-color: #5c8216;
+            color: #ffffff;
+        }
+        button:not(.secondary):not(.outline):hover,
+        [role="button"]:not(.secondary):not(.outline):hover {
+            background-color: #4a6a12;
+            border-color: #4a6a12;
+        }
+
+        main a, footer a { color: #5c8216; }
+        main a:hover, footer a:hover { color: #4a6a12; }
+
+        footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--pico-muted-color);
+        }
+
+        {#insert styles}{/insert}
+    </style>
+</head>
+<body>
+    <header style="background-color: #4e7220">
+        <nav>
+            <ul>
+                <li><strong>Тракер на състави</strong></li>
+            </ul>
+            {#insert nav}{/insert}
+        </nav>
+    </header>
+
+    <main>
+        {#insert main}{/insert}
+    </main>
+
+    <footer>
+        <p>
+            Данните се извличат от
+            <a href="https://ebfu.net" target="_blank" rel="noopener">ebfu.net</a>.
+            {#insert footerNote}{/insert}
+        </p>
+    </footer>
+
+    {#insert scripts}{/insert}
+</body>
+</html>

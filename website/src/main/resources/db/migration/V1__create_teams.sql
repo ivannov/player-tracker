@@ -97,3 +97,11 @@ CREATE TABLE user_roles (
 INSERT INTO roles (version, created_at, last_updated, name) VALUES
     (0, NOW(), NOW(), 'ADMIN'),
     (0, NOW(), NOW(), 'USER');
+
+-- Default admin user. Change the password after first login in production.
+INSERT INTO users (version, created_at, last_updated, username, password) VALUES
+    (0, NOW(), NOW(), 'admin', '$2a$10$xxFgME5YwoHikq05Z3keSOyGOqRXeBrcU5ZCChHAlrzd1MHIyWRky');
+
+INSERT INTO user_roles (user_id, role_id)
+    SELECT u.id, r.id FROM users u, roles r
+    WHERE u.username = 'admin' AND r.name = 'ADMIN';
