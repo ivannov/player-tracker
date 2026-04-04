@@ -14,6 +14,6 @@ public class Team extends TrackerEntity {
     @Column(nullable = false)
     public String location;
 
-    @Column(name = "logo_url")
+    @Column(name = "logo_url", length = 512)
     public String logoUrl;
 }

@@ -20,6 +20,6 @@ public class TeamFormation extends TrackerEntity {
     public Team team;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10)
     public FormationType type;
 }

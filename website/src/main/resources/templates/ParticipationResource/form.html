@@ -1,0 +1,80 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; align-items: center; }
+    .form-actions button { flex: 1; }
+    .form-actions button[type="submit"] { flex: 3; }
+    fieldset { border: var(--pico-border-width) solid var(--pico-border-color); border-radius: var(--pico-border-radius); padding: 1rem; margin-bottom: 1rem; }
+    legend { padding-inline: 0.5rem; font-weight: bold; }
+    fieldset input[type="checkbox"] { appearance: auto; width: auto; height: auto; border: revert; background: revert; box-shadow: revert; }
+    .readonly-field { margin-bottom: 1rem; }
+    .readonly-field strong { display: inline-block; min-width: 10rem; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article class="form-card">
+        <header>
+            <h2>{#if groupId}Редактирай участие{#else}Ново участие{/if}</h2>
+        </header>
+
+        <form method="post"
+              action="{#if groupId}/participations/{groupId}{#else}/participations{/if}">
+
+            {#if groupId}
+            <div class="readonly-field"><strong>Отбор:</strong> {teamName}</div>
+            <div class="readonly-field"><strong>Лига / турнир:</strong> {competitionName}</div>
+            <div class="readonly-field"><strong>Сезон:</strong> {season}</div>
+            {#else}
+            <label for="teamId">Отбор <span aria-hidden="true">*</span></label>
+            <select id="teamId" name="teamId" required>
+                <option value="">— изберете отбор —</option>
+                {#for t in teams}
+                <option value="{t.id}">{t.name} ({t.location})</option>
+                {/for}
+            </select>
+
+            <label for="competitionId">Лига / турнир <span aria-hidden="true">*</span></label>
+            <select id="competitionId" name="competitionId" required>
+                <option value="">— изберете лига —</option>
+                {#for c in competitions}
+                <option value="{c.id}">{c.name}</option>
+                {/for}
+            </select>
+
+            <label for="season">Сезон <span aria-hidden="true">*</span></label>
+            <input type="text" id="season" name="season"
+                   placeholder="2024/2025"
+                   pattern="\d\d\d\d/\d\d\d\d"
+                   maxlength="9"
+                   required>
+            {/if}
+
+            <fieldset>
+                <legend>Формации</legend>
+                    {#for ft in allTypes}
+                    <label>
+                        <input type="checkbox" name="formationTypes" value="{ft.name()}"
+                               {#if selectedTypes.contains(ft)}checked{/if}>
+                        {#if ft.label.isEmpty}Мъже{#else}{ft.label}{/if}
+                    </label>
+                    {/for}
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit">Запази</button>
+                <button type="submit" form="back-nav" class="secondary">Назад</button>
+            </div>
+        </form>
+    </article>
+</div>
+<form id="back-nav" action="/participations" method="get" hidden></form>
+{/main}
+
+{/include}

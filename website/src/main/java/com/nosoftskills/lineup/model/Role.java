@@ -10,6 +10,6 @@ import jakarta.persistence.Table;
 public class Role extends TrackerEntity {
 
     @RolesValue
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 50)
     public String name;
 }

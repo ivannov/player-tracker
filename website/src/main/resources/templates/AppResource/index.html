@@ -1,110 +1,10 @@
 {#include layout}
 
 {#nav}
-    <ul>
-        <!-- Desktop: three dropdowns -->
-        <li class="desktop-only">
-            <details class="dropdown" id="dd-entry">
-                <summary>Въвеждане</summary>
-                <ul>
-                    <li><a href="#">Добави отбор</a></li>
-                    <li><a href="#">Добави лига / турнир</a></li>
-                    <li><a href="#">Добави играч</a></li>
-                    <li><a href="#">Добави потребител</a></li>
-                </ul>
-            </details>
-        </li>
-        <li class="desktop-only">
-            <details class="dropdown" id="dd-extract">
-                <summary>Извличане</summary>
-                <ul>
-                    <li><a href="#">Извлечи за днес</a></li>
-                    <li><a href="#">Извлечи за дата…</a></li>
-                    <li><a href="#">Планировчик</a></li>
-                </ul>
-            </details>
-        </li>
-        <li class="desktop-only">
-            <details class="dropdown" id="dd-user">
-                <summary>{username}</summary>
-                <ul>
-                    <li><a href="#">Смени парола</a></li>
-                    <li><hr></li>
-                    <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
-                </ul>
-            </details>
-        </li>
-
-        <!-- Mobile: burger -->
-        <li class="mobile-only">
-            <details class="dropdown" id="dd-burger">
-                <summary aria-label="Меню">☰</summary>
-                <ul>
-                    <li><strong>Въвеждане</strong></li>
-                    <li><a href="#">Добави отбор</a></li>
-                    <li><a href="#">Добави лига / турнир</a></li>
-                    <li><a href="#">Добави играч</a></li>
-                    <li><a href="#">Добави потребител</a></li>
-                    <li><hr></li>
-                    <li><strong>Извличане</strong></li>
-                    <li><a href="#">Извлечи за днес</a></li>
-                    <li><a href="#">Извлечи за дата…</a></li>
-                    <li><a href="#">Планировчик</a></li>
-                    <li><hr></li>
-                    <li><a href="#">Смени парола</a></li>
-                    <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
-                </ul>
-            </details>
-        </li>
-    </ul>
+    {#appNav username=username /}
 {/nav}
 
 {#styles}
-    /* ── Dropdown ─────────────────────────────────────────────────────── */
-    nav li details { position: relative; }
-    nav li details > ul {
-        display: none;
-        flex-direction: column;
-        position: absolute;
-        right: 0;
-        top: calc(100% + 0.5rem);
-        min-width: 14rem;
-        margin: 0;
-        padding: 0.35rem 0;
-        list-style: none;
-        background: var(--pico-card-background-color);
-        border: var(--pico-border-width) solid var(--pico-border-color);
-        border-radius: var(--pico-border-radius);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
-        z-index: 999;
-    }
-    nav li details[open] > ul { display: flex; }
-    nav li details > ul > li { display: block; padding: 0; }
-    nav li details > ul > li > a,
-    nav li details > ul > li > strong {
-        display: block;
-        padding: 0.65rem 1rem;
-        white-space: nowrap;
-        text-decoration: none;
-        color: var(--pico-color);
-    }
-    nav li details > ul > li > a:hover {
-        background: color-mix(in srgb, currentColor 8%, transparent);
-    }
-    nav li details > ul > li > hr {
-        margin: 0;
-        border-color: var(--pico-border-color);
-    }
-    a.logout { color: var(--pico-del-color) !important; }
-
-    /* ── Responsive ───────────────────────────────────────────────────── */
-    .mobile-only { display: none; }
-    @media (max-width: 767px) {
-        .desktop-only { display: none; }
-        .mobile-only { display: list-item; }
-    }
-
-    /* ── Search ───────────────────────────────────────────────────────── */
     main {
         display: flex;
         align-items: center;
@@ -141,25 +41,5 @@
         </form>
     </div>
 {/main}
-
-{#scripts}
-    <form id="logout-form" method="post" action="/app/logout" hidden></form>
-
-    <script>
-        const dropdowns = document.querySelectorAll('nav details.dropdown');
-
-        dropdowns.forEach(d => {
-            d.addEventListener('toggle', () => {
-                if (d.open) dropdowns.forEach(o => { if (o !== d) o.open = false; });
-            });
-        });
-
-        document.addEventListener('click', e => {
-            if (!e.target.closest('nav details.dropdown')) {
-                dropdowns.forEach(d => d.open = false);
-            }
-        });
-    </script>
-{/scripts}
 
 {/include}

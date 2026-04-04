@@ -1,0 +1,61 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; align-items: center; }
+    .form-actions button { flex: 1; }
+    .form-actions button[type="submit"] { flex: 3; }
+    fieldset { border: var(--pico-border-width) solid var(--pico-border-color); border-radius: var(--pico-border-radius); padding: 1rem; margin-bottom: 1rem; }
+    legend { padding-inline: 0.5rem; font-weight: bold; }
+    fieldset input[type="checkbox"] { appearance: auto; width: auto; height: auto; border: revert; background: revert; box-shadow: revert; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article class="form-card">
+        <header>
+            <h2>{#if team.id}Редактирай отбор{#else}Нов отбор{/if}</h2>
+        </header>
+
+        <form method="post"
+              action="{#if team.id}/teams/{team.id}{#else}/teams{/if}">
+
+            <label for="name">Наименование <span aria-hidden="true">*</span></label>
+            <input type="text" id="name" name="name"
+                   value="{team.name ?: ''}" required autofocus>
+
+            <label for="location">Населено място <span aria-hidden="true">*</span></label>
+            <input type="text" id="location" name="location"
+                   value="{team.location ?: ''}" required>
+
+            <label for="logoUrl">Лого URL</label>
+            <input type="text" id="logoUrl" name="logoUrl"
+                   value="{team.logoUrl ?: ''}">
+
+            <fieldset>
+                <legend>Формации</legend>
+                    {#for ft in allTypes}
+                    <label>
+                        <input type="checkbox" name="formationTypes" value="{ft.name()}"
+                               {#if selectedTypes.contains(ft)}checked{/if}>
+                        {#if ft.label.isEmpty}Мъже{#else}{ft.label}{/if}
+                    </label>
+                    {/for}
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit">Запази</button>
+                <button type="submit" form="back-nav" class="secondary">Назад</button>
+            </div>
+        </form>
+    </article>
+</div>
+<form id="back-nav" action="/teams" method="get" hidden></form>
+{/main}
+
+{/include}

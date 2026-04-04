@@ -24,5 +24,5 @@ public class PlayerAppearance extends TrackerEntity {
     public boolean starter;
 
     @Column
-    public Integer number;
+    public Short number;
 }

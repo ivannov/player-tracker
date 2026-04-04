@@ -1,0 +1,55 @@
+{@String username}
+<ul>
+    <!-- Desktop: three dropdowns -->
+    <li class="desktop-only">
+        <details class="dropdown" id="dd-entry">
+            <summary>Въвеждане</summary>
+            <ul>
+                <li><a href="/teams">Отбори</a></li>
+                <li><a href="/competitions">Лиги / турнири</a></li>
+                <li><a href="/participations">Участия</a></li>
+            </ul>
+        </details>
+    </li>
+    <li class="desktop-only">
+        <details class="dropdown" id="dd-extract">
+            <summary>Извличане</summary>
+            <ul>
+                <li><a href="#">Извлечи за днес</a></li>
+                <li><a href="#">Извлечи за дата…</a></li>
+                <li><a href="#">Планировчик</a></li>
+            </ul>
+        </details>
+    </li>
+    <li class="desktop-only">
+        <details class="dropdown" id="dd-user">
+            <summary>{username}</summary>
+            <ul>
+                <li><a href="#">Смени парола</a></li>
+                <li><hr></li>
+                <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
+            </ul>
+        </details>
+    </li>
+
+    <!-- Mobile: burger -->
+    <li class="mobile-only">
+        <details class="dropdown" id="dd-burger">
+            <summary aria-label="Меню">☰</summary>
+            <ul>
+                <li><strong>Въвеждане</strong></li>
+                <li><a href="/teams">Отбори</a></li>
+                <li><a href="/competitions">Лиги / турнири</a></li>
+                <li><a href="/participations">Участия</a></li>
+                <li><hr></li>
+                <li><strong>Извличане</strong></li>
+                <li><a href="#">Извлечи за днес</a></li>
+                <li><a href="#">Извлечи за дата…</a></li>
+                <li><a href="#">Планировчик</a></li>
+                <li><hr></li>
+                <li><a href="#">Смени парола</a></li>
+                <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
+            </ul>
+        </details>
+    </li>
+</ul>

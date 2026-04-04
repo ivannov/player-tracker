@@ -1,0 +1,43 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; align-items: center; }
+    .form-actions button { flex: 1; }
+    .form-actions button[type="submit"] { flex: 3; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article class="form-card">
+        <header>
+            <h2>{#if competition.id}Редактирай лига{#else}Нова лига{/if}</h2>
+        </header>
+
+        <form method="post"
+              action="{#if competition.id}/competitions/{competition.id}{#else}/competitions{/if}">
+
+            <label for="name">Наименование <span aria-hidden="true">*</span></label>
+            <input type="text" id="name" name="name"
+                   value="{competition.name ?: ''}" required autofocus>
+
+            <label for="logoUrl">Лого URL</label>
+            <input type="text" id="logoUrl" name="logoUrl"
+                   value="{competition.logoUrl ?: ''}">
+
+            <div class="form-actions">
+                <button type="submit">Запази</button>
+                <button type="submit" form="back-nav" class="secondary">Назад</button>
+            </div>
+        </form>
+    </article>
+</div>
+<form id="back-nav" action="/competitions" method="get" hidden></form>
+{/main}
+
+{/include}
