@@ -1,9 +1,10 @@
 ---
 id: LT-002
 title: Public read / admin-only write security model
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:37'
+updated_date: '2026-07-11 19:43'
 labels:
   - security
   - access
