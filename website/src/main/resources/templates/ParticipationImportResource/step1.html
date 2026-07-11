@@ -1,0 +1,57 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+    .form-actions button[type="submit"] { flex: 3; }
+    .form-actions a { flex: 1; text-align: center; }
+    [aria-busy="true"] { opacity: 0.7; pointer-events: none; }
+{/styles}
+
+{#main}
+<div class="container">
+    <div id="import-wizard">
+        <article class="form-card">
+            <header>
+                <h2>Импорт на участия от БФС</h2>
+            </header>
+
+            <form hx-post="/participations/import/extract"
+                  hx-target="#import-wizard"
+                  hx-swap="outerHTML"
+                  hx-indicator="#extract-spinner">
+
+                <label for="url">URL на лигата в БФС</label>
+                <input type="url" id="url" name="url" required
+                       placeholder="https://bfu-tournaments.com/...">
+
+                <label for="competitionId">Лига / турнир</label>
+                <select id="competitionId" name="competitionId" required>
+                    <option value="">— изберете —</option>
+                    {#for c in competitions}
+                    <option value="{c.id}">{c.name}</option>
+                    {/for}
+                </select>
+
+                <label for="season">Сезон</label>
+                <input type="text" id="season" name="season"
+                       placeholder="2024/2025"
+                       pattern="\d\d\d\d/\d\d\d\d"
+                       maxlength="9" required>
+
+                <div class="form-actions">
+                    <button type="submit" id="extract-spinner">Извлечи отбори</button>
+                    <a href="/participations" role="button" class="secondary outline">Назад</a>
+                </div>
+            </form>
+        </article>
+    </div>
+</div>
+{/main}
+
+{/include}

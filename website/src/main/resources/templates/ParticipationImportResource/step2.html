@@ -1,0 +1,77 @@
+<div id="import-wizard">
+    <article>
+        <header>
+            <h2>Разпознаване на отбори</h2>
+            <p>Прегледайте и коригирайте съответствието преди запис.</p>
+        </header>
+
+        <form method="post" action="/participations/import/save">
+            <input type="hidden" name="competitionId" value="{competitionId}">
+            <input type="hidden" name="season" value="{season}">
+
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>Извлечен отбор</th>
+                            <th>Отбор в системата</th>
+                            <th>Формация</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#for row in rows}
+                        <tr>
+                            <td>
+                                {row.scrapedName}
+                                <input type="hidden" name="scrapedName" value="{row.scrapedName}">
+                            </td>
+                            <td>
+                                {#if row.resolvedTeam}
+                                <span>{row.resolvedTeam.name}</span>
+                                <input type="hidden" name="teamId" value="{row.resolvedTeam.id}">
+                                <input type="hidden" name="teamName" value="">
+                                <input type="hidden" name="teamLocation" value="">
+                                {#else}
+                                <select name="teamId"
+                                        hx-post="/participations/import/formations"
+                                        hx-target="#formations-{row_index}"
+                                        hx-swap="innerHTML"
+                                        hx-include="this"
+                                        hx-trigger="change">
+                                    <option value="">— нов отбор —</option>
+                                    {#for t in allTeams}
+                                    <option value="{t.id}">{t.name} ({t.location})</option>
+                                    {/for}
+                                </select>
+                                <input type="text" name="teamName" placeholder="Ново название на отбора">
+                                <input type="text" name="teamLocation" placeholder="Град">
+                                {/if}
+                            </td>
+                            <td>
+                                <span id="formations-{row_index}">
+                                    {#if row.resolvedTeam}
+                                    {#include ParticipationImportResource/formationsSelect formations=row.formations /}
+                                    {#else}
+                                    <input type="hidden" name="formationTypeId" value="">
+                                    <select name="newFormationType">
+                                        <option value="">— без формация —</option>
+                                        {#for ft in formationTypes}
+                                        <option value="{ft.name()}">{#if ft.label.isEmpty}Мъже{#else}{ft.label}{/if}</option>
+                                        {/for}
+                                    </select>
+                                    {/if}
+                                </span>
+                            </td>
+                        </tr>
+                        {/for}
+                    </tbody>
+                </table>
+            </figure>
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button type="submit">Запази участията</button>
+                <a href="/participations/import" role="button" class="secondary outline">Назад</a>
+            </div>
+        </form>
+    </article>
+</div>

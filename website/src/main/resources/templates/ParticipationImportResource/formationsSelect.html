@@ -1,0 +1,7 @@
+<select name="formationTypeId">
+    <option value="">— изберете формация —</option>
+    {#for tf in formations}
+    <option value="{tf.id}">{#if tf.type.label.isEmpty}Мъже{#else}{tf.type.label}{/if}</option>
+    {/for}
+</select>
+<input type="hidden" name="newFormationType" value="">
