@@ -10,7 +10,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 class TeamResourceTest {
@@ -30,21 +32,45 @@ class TeamResourceTest {
     }
 
     @Test
-    void listUnauthenticatedRedirectsToLogin() {
-        given().redirects().follow(false)
-                .when().get("/teams")
-                .then().statusCode(302);
+    void listReturns200Anonymously() {
+        given().when().get("/teams")
+                .then().statusCode(200)
+                .body(not(containsString("hx-delete")), not(containsString("/teams/new")));
     }
 
     @Test
     @TestSecurity(user = "user", roles = {"USER"})
     void listReturns200() {
         given().when().get("/teams")
-                .then().statusCode(200);
+                .then().statusCode(200)
+                .body(not(containsString("hx-delete")), not(containsString("/teams/new")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void listShowsAdminControlsForAdmin() {
+        given().when().get("/teams")
+                .then().statusCode(200)
+                .body(containsString("/teams/new"));
+    }
+
+    @Test
+    void newFormRedirectsAnonymousToLogin() {
+        given().redirects().follow(false)
+                .when().get("/teams/new")
+                .then().statusCode(302);
     }
 
     @Test
     @TestSecurity(user = "user", roles = {"USER"})
+    void newFormForbiddenForUser() {
+        given().redirects().follow(false)
+                .when().get("/teams/new")
+                .then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void newFormReturns200() {
         given().when().get("/teams/new")
                 .then().statusCode(200);
@@ -83,6 +109,23 @@ class TeamResourceTest {
         createdId = insertTeam("Edit Test Team");
         given().when().get("/teams/" + createdId + "/edit")
                 .then().statusCode(200);
+    }
+
+    @Test
+    void editFormRedirectsAnonymousToLogin() {
+        createdId = insertTeam("Edit Anon Test Team");
+        given().redirects().follow(false)
+                .when().get("/teams/" + createdId + "/edit")
+                .then().statusCode(302);
+    }
+
+    @Test
+    @TestSecurity(user = "user", roles = {"USER"})
+    void editFormForbiddenForUser() {
+        createdId = insertTeam("Edit Forbidden Test Team");
+        given().redirects().follow(false)
+                .when().get("/teams/" + createdId + "/edit")
+                .then().statusCode(403);
     }
 
     @Test

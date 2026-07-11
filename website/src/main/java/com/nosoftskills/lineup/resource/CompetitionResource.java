@@ -1,10 +1,9 @@
 package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
+import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -24,15 +23,14 @@ import java.net.URI;
 import java.util.List;
 
 @Path("/competitions")
-@Authenticated
 public class CompetitionResource {
 
     @Inject
-    SecurityIdentity identity;
+    CurrentUser currentUser;
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, List<Competition> competitions);
+        public static native TemplateInstance list(String username, boolean isAdmin, List<Competition> competitions);
         public static native TemplateInstance form(String username, Competition competition);
     }
 
@@ -46,23 +44,25 @@ public class CompetitionResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance list() {
-        return Templates.list(identity.getPrincipal().getName(), Competition.listAll());
+        return Templates.list(currentUser.username(), currentUser.isAdmin(), Competition.listAll());
     }
 
     @GET
     @Path("/new")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(identity.getPrincipal().getName(), new Competition());
+        return Templates.form(currentUser.username(), new Competition());
     }
 
     @GET
     @Path("/{id}/edit")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance editForm(@PathParam("id") Long id) {
         Competition c = Competition.findById(id);
         if (c == null) throw new NotFoundException();
-        return Templates.form(identity.getPrincipal().getName(), c);
+        return Templates.form(currentUser.username(), c);
     }
 
     @POST

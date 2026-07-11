@@ -21,10 +21,12 @@
                 <h2>Участия</h2>
                 <p>Управление на участия на формации в лиги</p>
             </hgroup>
+            {#if isAdmin}
             <div style="display:flex;gap:0.5rem;">
                 <a href="/participations/new" role="button">+ Добави</a>
                 <a href="/participations/import" role="button" class="secondary">Импорт от БФС</a>
             </div>
+            {/if}
         </header>
         <table>
             <thead>
@@ -32,19 +34,24 @@
                     <th>Отбор</th>
                     <th>Лига / турнир</th>
                     <th>Сезон</th>
-                    <th></th>
+                    {#if isAdmin}<th></th>{/if}
                 </tr>
             </thead>
             <tbody>
                 {#for p in participations}
                 <tr>
                     <td>
+                        {#if isAdmin}
                         <a href="/participations/{p.id}/edit">
                             {p.teamFormation.team.name}{#if p.teamFormation.type.label.isEmpty}{#else} {p.teamFormation.type.label}{/if}
                         </a>
+                        {#else}
+                        {p.teamFormation.team.name}{#if p.teamFormation.type.label.isEmpty}{#else} {p.teamFormation.type.label}{/if}
+                        {/if}
                     </td>
                     <td>{p.competition.name}</td>
                     <td>{p.season}</td>
+                    {#if isAdmin}
                     <td class="trash">
                         <a href="#"
                            hx-delete="/participations/{p.id}"
@@ -55,6 +62,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                         </a>
                     </td>
+                    {/if}
                 </tr>
                 {/for}
             </tbody>

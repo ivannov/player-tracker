@@ -1,9 +1,7 @@
 {#include layout}
 
 {#nav}
-    <ul>
-        <li><a href="/login" role="button">Вход</a></li>
-    </ul>
+    {#appNav username=username /}
 {/nav}
 
 {#footerNote}Само за информационни цели.{/footerNote}
@@ -11,25 +9,20 @@
 {#styles}
     .hero {
         text-align: center;
-        padding-block: 4rem 3rem;
+        padding-block: 3rem 2rem;
     }
     .hero h1 {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
+        font-size: 2.25rem;
+        margin-bottom: 0.75rem;
     }
     .hero p {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         color: var(--pico-muted-color);
         max-width: 42rem;
         margin-inline: auto;
-        margin-bottom: 2rem;
     }
-    .features {
-        padding-block: 2rem 4rem;
-    }
-    .features h2 {
-        text-align: center;
-        margin-bottom: 2rem;
+    .browse {
+        padding-block: 1rem 4rem;
     }
     .grid {
         display: grid;
@@ -41,7 +34,7 @@
     .grid article p {
         color: var(--pico-muted-color);
         font-size: 0.95rem;
-        margin: 0;
+        margin: 0 0 1rem;
     }
 {/styles}
 
@@ -49,34 +42,31 @@
     <section class="hero">
         <hgroup>
             <img src="/images/logo-full.png" alt="Тракер на състави"
-                 style="width: 120px; height: 120px; margin-bottom: 1rem;">
+                 style="width: 100px; height: 100px; margin-bottom: 1rem;">
             <h1>Съставите на БФС лигите</h1>
             <p>
                 Автоматично извличане на стартовите състави от официалния сайт на БФС —
                 елитни младежки лиги и трите мъжки нива, всеки ден.
             </p>
         </hgroup>
-        <a href="/login" role="button">Влез в системата</a>
     </section>
 
-    <section class="features">
-        <h2>Какво предлага системата</h2>
+    <section class="browse">
         <div class="grid">
             <article>
-                <h3>Младежки лиги</h3>
-                <p>U15, U16, U17, U18 и U19 елитни лиги — пълни стартови състави за всеки изигран мач.</p>
+                <h3>Отбори</h3>
+                <p>{teamCount} отбора в системата — състави, формации и участия по лиги.</p>
+                <a href="/teams" role="button" class="outline">Разгледай отборите</a>
             </article>
             <article>
-                <h3>Мъжки лиги</h3>
-                <p>Първа, Втора и Трета лига — ежедневно обновяване на съставите след всеки кръг.</p>
+                <h3>Лиги / турнири</h3>
+                <p>{competitionCount} лиги и турнира — младежки и мъжки нива.</p>
+                <a href="/competitions" role="button" class="outline">Разгледай лигите</a>
             </article>
             <article>
-                <h3>История на играч</h3>
-                <p>Потърси играч по ime и виж пълна история на участията му по мачове и сезони.</p>
-            </article>
-            <article>
-                <h3>Статистики по отбор</h3>
-                <p>Преглед на използваните формации, брой мачове и ротации на съставите за всеки отбор.</p>
+                <h3>Участия</h3>
+                <p>{participationCount} участия на отборни формации по сезони.</p>
+                <a href="/participations" role="button" class="outline">Разгледай участията</a>
             </article>
         </div>
     </section>

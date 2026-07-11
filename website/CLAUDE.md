@@ -44,7 +44,8 @@ Web app that scrapes starting lineups from the Bulgarian Football Union (BFU) si
 
 ## Resource / URL Conventions
 - Management resources live at top-level paths: `/teams`, `/competitions`, `/team-formations`, `/participations`
-- Security is enforced via `@Authenticated` (GET) and `@RolesAllowed("ADMIN")` (POST/DELETE) on the resource class/methods — no URL-pattern config needed
+- Security model is public-read / admin-write: list (`GET /x`) is unauthenticated and public; `GET /x/new`, `GET /x/{id}/edit`, `POST`, and `DELETE` are `@RolesAllowed("ADMIN")` — no URL-pattern config needed
+- List templates must gate admin-only controls (add/edit links, delete buttons, import links) behind an `isAdmin` flag passed from the resource (`identity.hasRole("ADMIN")` via `CurrentUser`), since the list page itself is rendered for anonymous and USER-role visitors too
 - Form parameters use `@RestForm` (from `org.jboss.resteasy.reactive`), not `@FormParam` — this project uses `quarkus-rest` (reactive stack)
 - List pages that traverse lazy associations use JOIN FETCH JPQL to avoid N+1
 

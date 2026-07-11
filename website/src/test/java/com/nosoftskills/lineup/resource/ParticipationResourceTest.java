@@ -14,7 +14,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 class ParticipationResourceTest {
@@ -61,21 +63,45 @@ class ParticipationResourceTest {
     }
 
     @Test
-    void listUnauthenticatedRedirectsToLogin() {
-        given().redirects().follow(false)
-                .when().get("/participations")
-                .then().statusCode(302);
+    void listReturns200Anonymously() {
+        given().when().get("/participations")
+                .then().statusCode(200)
+                .body(not(containsString("hx-delete")), not(containsString("/participations/new")));
     }
 
     @Test
     @TestSecurity(user = "user", roles = {"USER"})
     void listReturns200() {
         given().when().get("/participations")
-                .then().statusCode(200);
+                .then().statusCode(200)
+                .body(not(containsString("hx-delete")), not(containsString("/participations/new")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void listShowsAdminControlsForAdmin() {
+        given().when().get("/participations")
+                .then().statusCode(200)
+                .body(containsString("/participations/new"));
+    }
+
+    @Test
+    void newFormRedirectsAnonymousToLogin() {
+        given().redirects().follow(false)
+                .when().get("/participations/new")
+                .then().statusCode(302);
     }
 
     @Test
     @TestSecurity(user = "user", roles = {"USER"})
+    void newFormForbiddenForUser() {
+        given().redirects().follow(false)
+                .when().get("/participations/new")
+                .then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void newFormReturns200() {
         given().when().get("/participations/new")
                 .then().statusCode(200);
@@ -119,6 +145,23 @@ class ParticipationResourceTest {
         createdParticipationId = insertParticipation("2023/2024");
         given().when().get("/participations/" + createdParticipationId + "/edit")
                 .then().statusCode(200);
+    }
+
+    @Test
+    void editFormRedirectsAnonymousToLogin() {
+        createdParticipationId = insertParticipation("2021/2022");
+        given().redirects().follow(false)
+                .when().get("/participations/" + createdParticipationId + "/edit")
+                .then().statusCode(302);
+    }
+
+    @Test
+    @TestSecurity(user = "user", roles = {"USER"})
+    void editFormForbiddenForUser() {
+        createdParticipationId = insertParticipation("2018/2019");
+        given().redirects().follow(false)
+                .when().get("/participations/" + createdParticipationId + "/edit")
+                .then().statusCode(403);
     }
 
     @Test

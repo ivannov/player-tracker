@@ -1,5 +1,6 @@
 {@String username}
 <ul>
+{#if username}
     <!-- Desktop: three dropdowns -->
     <li class="desktop-only">
         <details class="dropdown" id="dd-entry">
@@ -52,4 +53,7 @@
             </ul>
         </details>
     </li>
+{#else}
+    <li><a href="/login">Вход</a></li>
+{/if}
 </ul>

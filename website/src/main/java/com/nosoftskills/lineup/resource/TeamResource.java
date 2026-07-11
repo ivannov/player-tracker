@@ -4,10 +4,9 @@ import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
+import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -29,11 +28,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("/teams")
-@Authenticated
 public class TeamResource {
 
     @Inject
-    SecurityIdentity identity;
+    CurrentUser currentUser;
 
     private static final List<FormationType> DEFAULT_SELECTED = List.of(
             FormationType.U15, FormationType.U16, FormationType.U17,
@@ -42,7 +40,7 @@ public class TeamResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, List<Team> teams);
+        public static native TemplateInstance list(String username, boolean isAdmin, List<Team> teams);
         public static native TemplateInstance form(String username, Team team,
                 FormationType[] allTypes, List<FormationType> selectedTypes);
     }
@@ -57,26 +55,28 @@ public class TeamResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance list() {
-        return Templates.list(identity.getPrincipal().getName(), Team.listAll());
+        return Templates.list(currentUser.username(), currentUser.isAdmin(), Team.listAll());
     }
 
     @GET
     @Path("/new")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(identity.getPrincipal().getName(), new Team(),
+        return Templates.form(currentUser.username(), new Team(),
                 FormationType.values(), DEFAULT_SELECTED);
     }
 
     @GET
     @Path("/{id}/edit")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance editForm(@PathParam("id") Long id) {
         Team t = Team.findById(id);
         if (t == null) throw new NotFoundException();
         List<FormationType> selected = TeamFormation.<TeamFormation>find("team.id = ?1", id).list()
                 .stream().map(tf -> tf.type).collect(Collectors.toList());
-        return Templates.form(identity.getPrincipal().getName(), t,
+        return Templates.form(currentUser.username(), t,
                 FormationType.values(), selected);
     }
 

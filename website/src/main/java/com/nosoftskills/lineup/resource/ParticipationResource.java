@@ -5,10 +5,9 @@ import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
+import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -30,11 +29,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("/participations")
-@Authenticated
 public class ParticipationResource {
 
     @Inject
-    SecurityIdentity identity;
+    CurrentUser currentUser;
 
     private static final List<FormationType> DEFAULT_SELECTED = List.of(
             FormationType.U15, FormationType.U16, FormationType.U17,
@@ -43,7 +41,7 @@ public class ParticipationResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, List<Participation> participations);
+        public static native TemplateInstance list(String username, boolean isAdmin, List<Participation> participations);
 
         public static native TemplateInstance form(String username, Long groupId,
                 Long teamId, String teamName, Long competitionId, String competitionName, String season,
@@ -67,15 +65,16 @@ public class ParticipationResource {
                 "JOIN FETCH p.competition " +
                 "ORDER BY p.season DESC, tf.team.name"
         ).list();
-        return Templates.list(identity.getPrincipal().getName(), participations);
+        return Templates.list(currentUser.username(), currentUser.isAdmin(), participations);
     }
 
     @GET
     @Path("/new")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
         return Templates.form(
-                identity.getPrincipal().getName(),
+                currentUser.username(),
                 null, null, null, null, null, null,
                 Team.listAll(), Competition.listAll(),
                 FormationType.values(), DEFAULT_SELECTED
@@ -84,6 +83,7 @@ public class ParticipationResource {
 
     @GET
     @Path("/{id}/edit")
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance editForm(@PathParam("id") Long id) {
         Participation ref = loadById(id);
@@ -98,7 +98,7 @@ public class ParticipationResource {
         Competition comp = ref.competition;
 
         return Templates.form(
-                identity.getPrincipal().getName(),
+                currentUser.username(),
                 id, team.id, team.name, comp.id, comp.name, ref.season,
                 List.of(), List.of(),
                 FormationType.values(), selectedTypes
