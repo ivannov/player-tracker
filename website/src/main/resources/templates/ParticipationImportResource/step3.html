@@ -1,0 +1,49 @@
+<div id="import-wizard">
+    <article>
+        <header>
+            <h2>Преглед преди запис</h2>
+            <p>Проверете какво ще се случи при запис на участията.</p>
+        </header>
+
+        <form method="post" action="/participations/import/save">
+            <input type="hidden" name="competitionId" value="{competitionId}">
+            <input type="hidden" name="season" value="{season}">
+
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>Извлечен отбор</th>
+                            <th>Отбор</th>
+                            <th>Формация</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#for row in rows}
+                        <tr>
+                            <td>
+                                {row.scrapedName}
+                                <input type="hidden" name="scrapedName" value="{row.scrapedName}">
+                                <input type="hidden" name="teamId" value="{row.teamId}">
+                                <input type="hidden" name="teamName" value="{row.teamName}">
+                                <input type="hidden" name="teamLocation" value="{row.teamLocation}">
+                                <input type="hidden" name="formationTypeId" value="{row.formationTypeId}">
+                                <input type="hidden" name="newFormationType" value="{row.newFormationType}">
+                            </td>
+                            <td>{row.teamDisplay}</td>
+                            <td>{row.formationDisplay}</td>
+                            <td>{row.action.label}</td>
+                        </tr>
+                        {/for}
+                    </tbody>
+                </table>
+            </figure>
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button type="submit">Потвърди и запази</button>
+                <a href="/participations/import" role="button" class="secondary outline">Назад</a>
+            </div>
+        </form>
+    </article>
+</div>

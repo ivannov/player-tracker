@@ -43,7 +43,7 @@
                     <label>
                         <input type="checkbox" name="formationTypes" value="{ft.name()}"
                                {#if selectedTypes.contains(ft)}checked{/if}>
-                        {#if ft.label.isEmpty}Мъже{#else}{ft.label}{/if}
+                        {ft.displayLabel}
                     </label>
                     {/for}
             </fieldset>

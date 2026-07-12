@@ -2,10 +2,19 @@
     <article>
         <header>
             <h2>Разпознаване на отбори</h2>
-            <p>Прегледайте и коригирайте съответствието преди запис.</p>
+            <p>Прегледайте и коригирайте съответствието преди преглед.</p>
         </header>
 
-        <form method="post" action="/participations/import/save">
+        <datalist id="teams-list">
+            {#for t in allTeams}
+            <option value="{t.name} ({t.location})" data-id="{t.id}"></option>
+            {/for}
+        </datalist>
+
+        <form hx-post="/participations/import/review"
+              hx-target="#import-wizard"
+              hx-swap="outerHTML"
+              hx-indicator="#review-spinner">
             <input type="hidden" name="competitionId" value="{competitionId}">
             <input type="hidden" name="season" value="{season}">
 
@@ -25,40 +34,34 @@
                                 {row.scrapedName}
                                 <input type="hidden" name="scrapedName" value="{row.scrapedName}">
                             </td>
-                            <td>
-                                {#if row.resolvedTeam}
-                                <span>{row.resolvedTeam.name}</span>
-                                <input type="hidden" name="teamId" value="{row.resolvedTeam.id}">
-                                <input type="hidden" name="teamName" value="">
-                                <input type="hidden" name="teamLocation" value="">
-                                {#else}
-                                <select name="teamId"
-                                        hx-post="/participations/import/formations"
-                                        hx-target="#formations-{row_index}"
-                                        hx-swap="innerHTML"
-                                        hx-include="this"
-                                        hx-trigger="change">
-                                    <option value="">— нов отбор —</option>
-                                    {#for t in allTeams}
-                                    <option value="{t.id}">{t.name} ({t.location})</option>
-                                    {/for}
-                                </select>
-                                <input type="text" name="teamName" placeholder="Ново название на отбора">
-                                <input type="text" name="teamLocation" placeholder="Град">
-                                {/if}
+                            <td class="team-cell">
+                                <div class="search-fields">
+                                    <input type="text" class="team-search-input" list="teams-list" autocomplete="off"
+                                           placeholder="Търсете отбор по име"
+                                           value="{#if row.resolvedTeam}{row.resolvedTeam.name} ({row.resolvedTeam.location}){/if}">
+                                    <input type="hidden" name="teamId" class="team-id-field"
+                                           value="{#if row.resolvedTeam}{row.resolvedTeam.id}{/if}"
+                                           hx-post="/participations/import/formations"
+                                           hx-trigger="change"
+                                           hx-target="#formations-{row_index}"
+                                           hx-swap="innerHTML"
+                                           hx-include="this">
+                                    <button type="button" class="outline secondary new-team-toggle" data-row="{row_index}">+ Нов отбор</button>
+                                </div>
+                                <div class="new-team-fields" hidden>
+                                    <input type="text" name="teamName" placeholder="Название на отбора">
+                                    <input type="text" name="teamLocation" placeholder="Град">
+                                    <button type="button" class="outline secondary existing-team-toggle" data-row="{row_index}">← Търсене на отбор</button>
+                                </div>
                             </td>
                             <td>
-                                <span id="formations-{row_index}">
+                                <span id="formations-{row_index}" class="formations-cell">
                                     {#if row.resolvedTeam}
-                                    {#include ParticipationImportResource/formationsSelect formations=row.formations /}
+                                    {#include ParticipationImportResource/formationsSelect formations=row.formations formationTypes=formationTypes /}
                                     {#else}
+                                    <span class="formation-placeholder">Изберете отбор</span>
                                     <input type="hidden" name="formationTypeId" value="">
-                                    <select name="newFormationType">
-                                        <option value="">— без формация —</option>
-                                        {#for ft in formationTypes}
-                                        <option value="{ft.name()}">{#if ft.label.isEmpty}Мъже{#else}{ft.label}{/if}</option>
-                                        {/for}
-                                    </select>
+                                    <input type="hidden" name="newFormationType" value="">
                                     {/if}
                                 </span>
                             </td>
@@ -69,9 +72,92 @@
             </figure>
 
             <div style="display:flex;gap:1rem;margin-top:1.5rem;">
-                <button type="submit">Запази участията</button>
+                <button type="submit" id="review-spinner">Преглед</button>
                 <a href="/participations/import" role="button" class="secondary outline">Назад</a>
             </div>
         </form>
+
+        <script>
+            (function () {
+                var wizard = document.getElementById('import-wizard');
+                var datalist = document.getElementById('teams-list');
+
+                function setFormationsPlaceholder(row, text) {
+                    var cell = document.getElementById('formations-' + row);
+                    cell.innerHTML = '<span class="formation-placeholder">' + text + '</span>'
+                        + '<input type="hidden" name="formationTypeId" value="">'
+                        + '<input type="hidden" name="newFormationType" value="">';
+                }
+
+                function resolveTeamId(input) {
+                    var value = input.value.trim().toLowerCase();
+                    var hidden = input.parentElement.querySelector('.team-id-field');
+                    var matches = [];
+                    if (value) {
+                        for (var i = 0; i < datalist.options.length; i++) {
+                            if (datalist.options[i].value.trim().toLowerCase() === value) {
+                                matches.push(datalist.options[i].dataset.id);
+                            }
+                        }
+                    }
+                    // Only accept an unambiguous match; two teams rendering the same
+                    // "name (location)" text must not silently resolve to either one.
+                    var matchedId = matches.length === 1 ? matches[0] : '';
+                    if (hidden.value !== matchedId) {
+                        hidden.value = matchedId;
+                        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    // Block silent submission of unrecognized text: require the admin to
+                    // either pick a matching team or explicitly switch to "+ Нов отбор".
+                    input.setCustomValidity(value && !matchedId
+                        ? 'Изберете отбор от списъка или натиснете „+ Нов отбор“.'
+                        : '');
+                }
+
+                wizard.querySelectorAll('.team-search-input').forEach(function (input) {
+                    input.addEventListener('input', function () { resolveTeamId(input); });
+                });
+
+                wizard.addEventListener('click', function (e) {
+                    var newToggle = e.target.closest('.new-team-toggle');
+                    if (newToggle) {
+                        var row = newToggle.dataset.row;
+                        var cell = newToggle.closest('.team-cell');
+                        cell.querySelector('.search-fields').hidden = true;
+                        cell.querySelector('.new-team-fields').hidden = false;
+                        var searchInput = cell.querySelector('.team-search-input');
+                        searchInput.value = '';
+                        searchInput.setCustomValidity('');
+                        cell.querySelector('.team-id-field').value = '';
+                        setFormationsPlaceholder(row, 'Ще се създаде нов отбор — Мъже');
+                        return;
+                    }
+
+                    var existingToggle = e.target.closest('.existing-team-toggle');
+                    if (existingToggle) {
+                        var row2 = existingToggle.dataset.row;
+                        var cell2 = existingToggle.closest('.team-cell');
+                        cell2.querySelector('.new-team-fields').hidden = true;
+                        cell2.querySelector('.search-fields').hidden = false;
+                        cell2.querySelector('[name="teamName"]').value = '';
+                        cell2.querySelector('[name="teamLocation"]').value = '';
+                        setFormationsPlaceholder(row2, 'Изберете отбор');
+                    }
+                });
+
+                wizard.addEventListener('change', function (e) {
+                    if (e.target.classList.contains('formation-select')) {
+                        var newSelect = e.target.nextElementSibling;
+                        if (e.target.value === 'new') {
+                            newSelect.hidden = false;
+                            newSelect.focus();
+                        } else {
+                            newSelect.hidden = true;
+                            newSelect.value = '';
+                        }
+                    }
+                });
+            })();
+        </script>
     </article>
 </div>

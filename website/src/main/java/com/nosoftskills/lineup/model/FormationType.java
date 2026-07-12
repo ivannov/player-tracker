@@ -19,4 +19,8 @@ public enum FormationType {
     public String getLabel() {
         return label;
     }
+
+    public String getDisplayLabel() {
+        return label.isEmpty() ? "Мъже" : label;
+    }
 }

@@ -1,7 +1,13 @@
-<select name="formationTypeId">
+<select name="formationTypeId" class="formation-select">
     <option value="">— изберете формация —</option>
     {#for tf in formations}
-    <option value="{tf.id}">{#if tf.type.label.isEmpty}Мъже{#else}{tf.type.label}{/if}</option>
+    <option value="{tf.id}">{tf.type.displayLabel}</option>
+    {/for}
+    <option value="new">— добави нова формация —</option>
+</select>
+<select name="newFormationType" class="new-formation-select" hidden>
+    <option value="">— изберете тип —</option>
+    {#for ft in formationTypes}
+    <option value="{ft.name()}">{ft.displayLabel}</option>
     {/for}
 </select>
-<input type="hidden" name="newFormationType" value="">

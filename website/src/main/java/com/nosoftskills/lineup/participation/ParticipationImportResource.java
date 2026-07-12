@@ -7,10 +7,9 @@ import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.scraping.BfuLeagueScraperService;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
+import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -25,19 +24,22 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("/participations/import")
-@Authenticated
 public class ParticipationImportResource {
 
     @Inject
     BfuLeagueScraperService scraperService;
 
     @Inject
-    SecurityIdentity identity;
+    CurrentUser currentUser;
 
     @CheckedTemplate
     public static class Templates {
@@ -46,13 +48,18 @@ public class ParticipationImportResource {
         public static native TemplateInstance step2(String username, List<TeamResolutionRow> rows,
                 Long competitionId, String season, List<Team> allTeams, FormationType[] formationTypes);
 
-        public static native TemplateInstance formationsSelect(List<TeamFormation> formations);
+        public static native TemplateInstance formationsSelect(List<TeamFormation> formations,
+                FormationType[] formationTypes);
+
+        public static native TemplateInstance step3(String username, List<ImportReviewRow> rows,
+                Long competitionId, String season);
     }
 
     @GET
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showStep1() {
-        return Templates.step1(identity.getPrincipal().getName(), Competition.listAll());
+        return Templates.step1(currentUser.username(), Competition.listAll());
     }
 
     @POST
@@ -81,7 +88,7 @@ public class ParticipationImportResource {
                 })
                 .toList();
 
-        return Templates.step2(identity.getPrincipal().getName(), rows, competitionId, season,
+        return Templates.step2(currentUser.username(), rows, competitionId, season,
                 allTeams, FormationType.values());
     }
 
@@ -93,7 +100,103 @@ public class ParticipationImportResource {
         List<TeamFormation> formations = teamId != null
                 ? TeamFormation.<TeamFormation>find("team.id = ?1", teamId).list()
                 : List.of();
-        return Templates.formationsSelect(formations);
+        return Templates.formationsSelect(formations, FormationType.values());
+    }
+
+    @POST
+    @Path("/review")
+    @RolesAllowed("ADMIN")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance review(
+            @RestForm Long competitionId,
+            @RestForm String season,
+            @RestForm List<String> scrapedName,
+            @RestForm List<String> teamId,
+            @RestForm List<String> teamName,
+            @RestForm List<String> teamLocation,
+            @RestForm List<String> formationTypeId,
+            @RestForm List<String> newFormationType) {
+
+        Competition comp = Competition.findById(competitionId);
+        if (comp == null) throw new NotFoundException();
+
+        String normSeason = normalizeSeason(season);
+        int count = scrapedName != null ? scrapedName.size() : 0;
+
+        ResolveContext ctx = buildContext(teamId, formationTypeId);
+        List<RowResolution> resolutions = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            resolutions.add(resolveRow(ctx, get(teamId, i), get(teamName, i), get(teamLocation, i),
+                    get(formationTypeId, i), get(newFormationType, i)));
+        }
+        Set<Long> existingFormationIds = existingParticipationFormationIds(
+                resolutions.stream()
+                        .filter(r -> r.outcome() == RowOutcome.EXISTING_FORMATION)
+                        .map(r -> r.formation().id)
+                        .collect(Collectors.toSet()),
+                comp.id, normSeason);
+
+        List<ImportReviewRow> rows = new ArrayList<>(count);
+
+        for (int i = 0; i < count; i++) {
+            String sName = get(scrapedName, i);
+            String tId = get(teamId, i);
+            String tName = get(teamName, i);
+            String tLocation = get(teamLocation, i);
+            String fTypeId = get(formationTypeId, i);
+            String newFType = get(newFormationType, i);
+
+            RowResolution r = resolutions.get(i);
+            String teamDisplay;
+            String formationDisplay;
+            ImportAction action;
+
+            switch (r.outcome()) {
+                case SKIP_EMPTY -> {
+                    teamDisplay = "—";
+                    formationDisplay = "—";
+                    action = ImportAction.SKIP;
+                }
+                case SKIP_INVALID_TEAM -> {
+                    teamDisplay = "Невалиден отбор";
+                    formationDisplay = "—";
+                    action = ImportAction.SKIP;
+                }
+                case SKIP_INVALID_FORMATION -> {
+                    teamDisplay = r.team().name;
+                    formationDisplay = "Невалидна формация";
+                    action = ImportAction.SKIP;
+                }
+                case SKIP_NO_FORMATION -> {
+                    teamDisplay = r.team().name;
+                    formationDisplay = "Няма избрана формация";
+                    action = ImportAction.SKIP;
+                }
+                case NEW_TEAM -> {
+                    teamDisplay = "Нов: " + r.newTeamName()
+                            + (r.newTeamLocation().isEmpty() ? "" : " (" + r.newTeamLocation() + ")");
+                    formationDisplay = FormationType.FIRST.getDisplayLabel() + " (нов отбор)";
+                    action = ImportAction.CREATE;
+                }
+                case EXISTING_FORMATION -> {
+                    teamDisplay = r.team().name;
+                    formationDisplay = r.formationType().getDisplayLabel();
+                    action = existingFormationIds.contains(r.formation().id)
+                            ? ImportAction.EXISTS : ImportAction.CREATE;
+                }
+                case NEW_FORMATION -> {
+                    teamDisplay = r.team().name;
+                    formationDisplay = r.formationType().getDisplayLabel() + " (нова формация)";
+                    action = ImportAction.CREATE;
+                }
+                default -> throw new IllegalStateException("Unhandled outcome: " + r.outcome());
+            }
+
+            rows.add(new ImportReviewRow(sName, tId, tName, tLocation, fTypeId, newFType,
+                    teamDisplay, formationDisplay, action));
+        }
+
+        return Templates.step3(currentUser.username(), rows, competitionId, season);
     }
 
     @POST
@@ -113,56 +216,50 @@ public class ParticipationImportResource {
         Competition comp = Competition.findById(competitionId);
         if (comp == null) throw new NotFoundException();
 
-        String normSeason = season.replace("-", "/");
+        String normSeason = normalizeSeason(season);
         int count = scrapedName != null ? scrapedName.size() : 0;
 
+        ResolveContext ctx = buildContext(teamId, formationTypeId);
+        List<RowResolution> resolutions = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            String tId = get(teamId, i);
-            String tName = get(teamName, i);
-            String tLocation = get(teamLocation, i);
-            String fTypeId = get(formationTypeId, i);
-            String newFType = get(newFormationType, i);
+            resolutions.add(resolveRow(ctx, get(teamId, i), get(teamName, i), get(teamLocation, i),
+                    get(formationTypeId, i), get(newFormationType, i)));
+        }
+        Set<Long> existingFormationIds = existingParticipationFormationIds(
+                resolutions.stream()
+                        .filter(r -> r.outcome() == RowOutcome.EXISTING_FORMATION)
+                        .map(r -> r.formation().id)
+                        .collect(Collectors.toSet()),
+                comp.id, normSeason);
 
-            if (isBlank(tId) && isBlank(tName)) continue;
-
-            Team team;
-            TeamFormation tf;
-
-            if (isBlank(tId)) {
-                team = new Team();
-                team.name = tName.trim();
-                team.location = isBlank(tLocation) ? "" : tLocation.trim();
-                team.persist();
-                tf = new TeamFormation();
-                tf.team = team;
-                tf.type = FormationType.FIRST;
-                tf.persist();
-            } else {
-                team = Team.findById(Long.parseLong(tId));
-                if (team == null) continue;
-
-                if (!isBlank(fTypeId)) {
-                    tf = TeamFormation.findById(Long.parseLong(fTypeId));
-                    if (tf == null) continue;
-                } else if (!isBlank(newFType)) {
-                    FormationType fType = FormationType.valueOf(newFType);
-                    tf = TeamFormation.<TeamFormation>find("team.id = ?1 AND type = ?2", team.id, fType)
-                            .firstResult();
-                    if (tf == null) {
-                        tf = new TeamFormation();
-                        tf.team = team;
-                        tf.type = fType;
-                        tf.persist();
-                    }
-                } else {
-                    continue;
+        for (RowResolution r : resolutions) {
+            TeamFormation tf = switch (r.outcome()) {
+                case SKIP_EMPTY, SKIP_INVALID_TEAM, SKIP_INVALID_FORMATION, SKIP_NO_FORMATION -> null;
+                case NEW_TEAM -> {
+                    Team team = new Team();
+                    team.name = r.newTeamName();
+                    team.location = r.newTeamLocation();
+                    team.persist();
+                    TeamFormation newTf = new TeamFormation();
+                    newTf.team = team;
+                    newTf.type = FormationType.FIRST;
+                    newTf.persist();
+                    yield newTf;
                 }
-            }
+                case EXISTING_FORMATION -> r.formation();
+                case NEW_FORMATION -> {
+                    TeamFormation newTf = new TeamFormation();
+                    newTf.team = r.team();
+                    newTf.type = r.formationType();
+                    newTf.persist();
+                    yield newTf;
+                }
+            };
+            if (tf == null) continue;
 
-            long existing = Participation.count(
-                    "teamFormation.id = ?1 AND competition.id = ?2 AND season = ?3",
-                    tf.id, comp.id, normSeason);
-            if (existing == 0) {
+            // A freshly created team/formation can't already have a participation row.
+            boolean exists = r.outcome() == RowOutcome.EXISTING_FORMATION && existingFormationIds.contains(tf.id);
+            if (!exists) {
                 Participation p = new Participation();
                 p.teamFormation = tf;
                 p.competition = comp;
@@ -180,5 +277,147 @@ public class ParticipationImportResource {
 
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    private static String normalizeSeason(String season) {
+        return season == null ? null : season.replace("-", "/");
+    }
+
+    private static Long parseLongOrNull(String s) {
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static FormationType parseFormationTypeOrNull(String s) {
+        try {
+            return FormationType.valueOf(s);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static Set<Long> existingParticipationFormationIds(
+            Collection<Long> formationIds, Long competitionId, String season) {
+        if (formationIds.isEmpty()) return Set.of();
+        return Participation.<Participation>list(
+                        "teamFormation.id in ?1 and competition.id = ?2 and season = ?3",
+                        formationIds, competitionId, season)
+                .stream()
+                .map(p -> p.teamFormation.id)
+                .collect(Collectors.toSet());
+    }
+
+    private enum RowOutcome {
+        SKIP_EMPTY, SKIP_INVALID_TEAM, SKIP_INVALID_FORMATION, SKIP_NO_FORMATION,
+        NEW_TEAM, EXISTING_FORMATION, NEW_FORMATION
+    }
+
+    private record RowResolution(
+            RowOutcome outcome,
+            Team team,
+            TeamFormation formation,
+            FormationType formationType,
+            String newTeamName,
+            String newTeamLocation) {
+    }
+
+    /**
+     * Batched lookups for every team/formation referenced by a submitted row set, fetched
+     * once up front so resolveRow() never issues a per-row query.
+     */
+    private record ResolveContext(
+            Map<Long, Team> teamsById,
+            Map<Long, TeamFormation> formationsById,
+            Map<String, TeamFormation> formationsByTeamAndType) {
+
+        private static String key(Long teamId, FormationType type) {
+            return teamId + ":" + type;
+        }
+
+        TeamFormation formationByTeamAndType(Long teamId, FormationType type) {
+            return formationsByTeamAndType.get(key(teamId, type));
+        }
+    }
+
+    private ResolveContext buildContext(List<String> teamIds, List<String> formationTypeIds) {
+        Set<Long> teamIdSet = new HashSet<>();
+        if (teamIds != null) {
+            for (String id : teamIds) {
+                Long parsed = isBlank(id) ? null : parseLongOrNull(id);
+                if (parsed != null) teamIdSet.add(parsed);
+            }
+        }
+        Map<Long, Team> teamsById = teamIdSet.isEmpty() ? Map.of()
+                : Team.<Team>list("id in ?1", teamIdSet).stream().collect(Collectors.toMap(t -> t.id, t -> t));
+
+        Set<Long> formationIdSet = new HashSet<>();
+        if (formationTypeIds != null) {
+            for (String id : formationTypeIds) {
+                if (isBlank(id) || "new".equals(id)) continue;
+                Long parsed = parseLongOrNull(id);
+                if (parsed != null) formationIdSet.add(parsed);
+            }
+        }
+        Map<Long, TeamFormation> formationsById = formationIdSet.isEmpty() ? Map.of()
+                : TeamFormation.<TeamFormation>list("id in ?1", formationIdSet).stream()
+                        .collect(Collectors.toMap(tf -> tf.id, tf -> tf));
+
+        Map<String, TeamFormation> formationsByTeamAndType = teamIdSet.isEmpty() ? Map.of()
+                : TeamFormation.<TeamFormation>list("team.id in ?1", teamIdSet).stream()
+                        .collect(Collectors.toMap(tf -> ResolveContext.key(tf.team.id, tf.type), tf -> tf, (a, b) -> a));
+
+        return new ResolveContext(teamsById, formationsById, formationsByTeamAndType);
+    }
+
+    /**
+     * Single source of truth for interpreting one submitted import row, shared by both
+     * review() (preview only) and save() (persists) so the two can never disagree about
+     * what a row means.
+     */
+    private RowResolution resolveRow(ResolveContext ctx, String tId, String tName, String tLocation,
+            String fTypeId, String newFType) {
+        if (isBlank(tId) && isBlank(tName)) {
+            return new RowResolution(RowOutcome.SKIP_EMPTY, null, null, null, null, null);
+        }
+
+        if (isBlank(tId)) {
+            String newTeamName = tName.trim();
+            String newTeamLocation = isBlank(tLocation) ? "" : tLocation.trim();
+            return new RowResolution(RowOutcome.NEW_TEAM, null, null, FormationType.FIRST,
+                    newTeamName, newTeamLocation);
+        }
+
+        Long parsedTeamId = parseLongOrNull(tId);
+        Team team = parsedTeamId != null ? ctx.teamsById().get(parsedTeamId) : null;
+        if (team == null) {
+            return new RowResolution(RowOutcome.SKIP_INVALID_TEAM, null, null, null, null, null);
+        }
+
+        boolean explicitNewFormation = "new".equals(fTypeId);
+        if (!isBlank(fTypeId) && !explicitNewFormation) {
+            Long parsedFormationId = parseLongOrNull(fTypeId);
+            TeamFormation tf = parsedFormationId != null ? ctx.formationsById().get(parsedFormationId) : null;
+            if (tf == null || !tf.team.id.equals(team.id)) {
+                return new RowResolution(RowOutcome.SKIP_INVALID_FORMATION, team, null, null, null, null);
+            }
+            return new RowResolution(RowOutcome.EXISTING_FORMATION, team, tf, tf.type, null, null);
+        }
+
+        if (!isBlank(newFType)) {
+            FormationType fType = parseFormationTypeOrNull(newFType);
+            if (fType == null) {
+                return new RowResolution(RowOutcome.SKIP_INVALID_FORMATION, team, null, null, null, null);
+            }
+            TeamFormation existing = ctx.formationByTeamAndType(team.id, fType);
+            if (existing != null) {
+                return new RowResolution(RowOutcome.EXISTING_FORMATION, team, existing, fType, null, null);
+            }
+            return new RowResolution(RowOutcome.NEW_FORMATION, team, null, fType, null, null);
+        }
+
+        return new RowResolution(RowOutcome.SKIP_NO_FORMATION, team, null, null, null, null);
     }
 }
