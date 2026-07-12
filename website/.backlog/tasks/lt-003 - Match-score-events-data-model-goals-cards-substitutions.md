@@ -1,7 +1,7 @@
 ---
 id: LT-003
 title: 'Match score & events data model (goals, cards, substitutions)'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:38'
 updated_date: '2026-07-12 14:53'
