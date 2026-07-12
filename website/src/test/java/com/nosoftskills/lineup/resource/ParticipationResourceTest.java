@@ -3,8 +3,8 @@ package com.nosoftskills.lineup.resource;
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Participation;
-import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
+import com.nosoftskills.lineup.testsupport.TeamFormationFixtures;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -29,22 +29,11 @@ class ParticipationResourceTest {
     @BeforeEach
     void setup() {
         QuarkusTransaction.requiringNew().run(() -> {
-            Team t = new Team();
-            t.name = "Participation Test Team";
-            t.location = "Test City";
-            t.persist();
-            teamId = t.id;
-
-            TeamFormation tf = new TeamFormation();
-            tf.team = t;
-            tf.type = FormationType.U15;
-            tf.persist();
-            teamFormationId = tf.id;
-
-            Competition c = new Competition();
-            c.name = "Participation Test League";
-            c.persist();
-            competitionId = c.id;
+            TeamFormationFixtures.Ids ids = TeamFormationFixtures.create(
+                    "Participation Test Team", "Test City", FormationType.U15, "Participation Test League");
+            teamId = ids.teamId();
+            teamFormationId = ids.teamFormationId();
+            competitionId = ids.competitionId();
         });
     }
 
@@ -55,10 +44,7 @@ class ParticipationResourceTest {
                 Participation.deleteById(createdParticipationId);
                 createdParticipationId = null;
             }
-            Participation.delete("teamFormation.team.id", teamId);
-            TeamFormation.delete("team.id", teamId);
-            Team.deleteById(teamId);
-            Competition.deleteById(competitionId);
+            TeamFormationFixtures.delete(new TeamFormationFixtures.Ids(teamId, teamFormationId, competitionId));
         });
     }
 

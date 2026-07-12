@@ -7,6 +7,7 @@ import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.scraping.BfuLeagueScraperService;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
+import com.nosoftskills.lineup.testsupport.TeamFormationFixtures;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -37,33 +38,18 @@ class ParticipationImportResourceTest {
     @BeforeEach
     void setup() {
         QuarkusTransaction.requiringNew().run(() -> {
-            Team t = new Team();
-            t.name = "Import Test Team";
-            t.location = "Import City";
-            t.persist();
-            teamId = t.id;
-
-            TeamFormation tf = new TeamFormation();
-            tf.team = t;
-            tf.type = FormationType.FIRST;
-            tf.persist();
-            teamFormationId = tf.id;
-
-            Competition c = new Competition();
-            c.name = "Import Test League";
-            c.persist();
-            competitionId = c.id;
+            TeamFormationFixtures.Ids ids = TeamFormationFixtures.create(
+                    "Import Test Team", "Import City", FormationType.FIRST, "Import Test League");
+            teamId = ids.teamId();
+            teamFormationId = ids.teamFormationId();
+            competitionId = ids.competitionId();
         });
     }
 
     @AfterEach
     void cleanup() {
-        QuarkusTransaction.requiringNew().run(() -> {
-            Participation.delete("teamFormation.team.id", teamId);
-            TeamFormation.delete("team.id", teamId);
-            Team.deleteById(teamId);
-            Competition.deleteById(competitionId);
-        });
+        QuarkusTransaction.requiringNew().run(() ->
+                TeamFormationFixtures.delete(new TeamFormationFixtures.Ids(teamId, teamFormationId, competitionId)));
     }
 
     @Test

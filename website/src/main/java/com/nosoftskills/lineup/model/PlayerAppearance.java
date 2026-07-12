@@ -25,4 +25,10 @@ public class PlayerAppearance extends TrackerEntity {
 
     @Column
     public Short number;
+
+    @Column(name = "substituted_in_minute")
+    public Short substitutedInMinute;
+
+    @Column(name = "substituted_out_minute")
+    public Short substitutedOutMinute;
 }

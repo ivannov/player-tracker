@@ -23,4 +23,10 @@ public class Match extends TrackerEntity {
 
     @Column(nullable = false)
     public LocalDate date;
+
+    @Column(name = "home_score")
+    public Short homeScore;
+
+    @Column(name = "away_score")
+    public Short awayScore;
 }

@@ -48,7 +48,9 @@ CREATE TABLE matches (
     last_updated   TIMESTAMP NOT NULL,
     home_team_id   BIGINT    NOT NULL REFERENCES participations(id),
     away_team_id   BIGINT    NOT NULL REFERENCES participations(id),
-    date           DATE      NOT NULL
+    date           DATE      NOT NULL,
+    home_score     SMALLINT,
+    away_score     SMALLINT
 );
 
 CREATE TABLE players (
@@ -60,16 +62,31 @@ CREATE TABLE players (
 );
 
 CREATE TABLE player_appearances (
-    id           BIGSERIAL PRIMARY KEY,
-    version      INTEGER   NOT NULL DEFAULT 0,
-    created_at   TIMESTAMP NOT NULL,
-    last_updated TIMESTAMP NOT NULL,
-    player_id    BIGINT    NOT NULL REFERENCES players(id),
-    match_id     BIGINT    NOT NULL REFERENCES matches(id),
-    starter      BOOLEAN   NOT NULL,
-    number       SMALLINT,
-    UNIQUE (player_id, match_id)
+    id                      BIGSERIAL PRIMARY KEY,
+    version                 INTEGER   NOT NULL DEFAULT 0,
+    created_at              TIMESTAMP NOT NULL,
+    last_updated            TIMESTAMP NOT NULL,
+    player_id               BIGINT    NOT NULL REFERENCES players(id),
+    match_id                BIGINT    NOT NULL REFERENCES matches(id),
+    starter                 BOOLEAN   NOT NULL,
+    number                  SMALLINT,
+    substituted_in_minute   SMALLINT CHECK (substituted_in_minute IS NULL OR substituted_in_minute BETWEEN 0 AND 130),
+    substituted_out_minute  SMALLINT CHECK (substituted_out_minute IS NULL OR substituted_out_minute BETWEEN 0 AND 130),
+    UNIQUE (player_id, match_id),
+    CHECK (substituted_in_minute IS NULL OR substituted_out_minute IS NULL OR substituted_out_minute > substituted_in_minute)
 );
+
+CREATE TABLE match_events (
+    id                    BIGSERIAL   PRIMARY KEY,
+    version               INTEGER     NOT NULL DEFAULT 0,
+    created_at            TIMESTAMP   NOT NULL,
+    last_updated          TIMESTAMP   NOT NULL,
+    player_appearance_id  BIGINT      NOT NULL REFERENCES player_appearances(id) ON DELETE CASCADE,
+    type                  VARCHAR(20) NOT NULL,
+    minute                SMALLINT CHECK (minute IS NULL OR minute BETWEEN 0 AND 130)
+);
+
+CREATE INDEX idx_match_events_player_appearance_id ON match_events (player_appearance_id);
 
 CREATE TABLE roles (
     id           BIGSERIAL   PRIMARY KEY,

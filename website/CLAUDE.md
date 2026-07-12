@@ -40,7 +40,7 @@ Web app that scrapes starting lineups from the Bulgarian Football Union (BFU) si
 - Table order must respect foreign key dependencies
 - All text columns are UTF-8 and support Bulgarian Cyrillic — DB must be created with `ENCODING 'UTF8'`
 - Roles (`ADMIN`, `USER`) are seeded in the migration
-- `%dev.quarkus.flyway.repair-at-start=true` is set so that local schema edits to V1 don't break startup during development
+- `%dev.quarkus.flyway.clean-at-start=true` and `%dev.quarkus.flyway.repair-at-start=true` are set so that local schema edits to V1 don't break startup during development — `clean-at-start` drops and rebuilds the dev DB schema from scratch on every startup (required whenever V1's DDL itself changes, e.g. a new column/table added to an already-applied migration), while `repair-at-start` fixes checksum bookkeeping for cosmetic edits. Because of `clean-at-start`, the docker-compose dev DB is disposable — never store data there you need to keep
 
 ## Resource / URL Conventions
 - Management resources live at top-level paths: `/teams`, `/competitions`, `/team-formations`, `/participations`
