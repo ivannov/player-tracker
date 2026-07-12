@@ -39,9 +39,7 @@ New files: model/MatchEvent.java, model/MatchEventType.java (enum, sits alongsid
 - [x] #5 Match.java and PlayerAppearance.java gain the new fields; mvn verify passes with Hibernate schema validation green against the new migration
 <!-- AC:END -->
 
-
-
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
