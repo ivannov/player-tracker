@@ -1,9 +1,10 @@
 ---
 id: LT-001
 title: Auto-create participations from BFU league URL
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-03 19:41'
+updated_date: '2026-07-12 08:03'
 labels:
   - feature
   - participation
@@ -25,5 +26,11 @@ Three subtasks cover (1) the BFU scraper, (2) the wizard backend, and (3) the wi
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Delivered across three subtasks: LT-001.01 (BFU scraper), LT-001.02 (wizard backend endpoints), LT-001.03 (wizard UI: step1 URL/competition form, step2 team-resolution with searchable datalist picker + new-team/new-formation affordances, step3 create/exists/skip review, confirm-and-save).
+<!-- SECTION:FINAL_SUMMARY:END -->
