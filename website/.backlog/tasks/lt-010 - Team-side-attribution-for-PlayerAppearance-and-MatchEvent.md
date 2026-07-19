@@ -32,11 +32,13 @@ Should land before or alongside LT-004.03, since that task's manual-entry UI is 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Decide and document the team-side attribution approach (participation reference vs. explicit side enum) for PlayerAppearance
-- [ ] #2 Migration adds the chosen column(s) to player_appearances
-- [ ] #3 PlayerAppearance entity gains the corresponding field(s), following existing @JoinColumn/@Column conventions
-- [ ] #4 Tests cover deriving/storing team side for both home and away appearances
+- [x] #1 Decide and document the team-side attribution approach (participation reference vs. explicit side enum) for PlayerAppearance
+- [x] #2 Migration adds the chosen column(s) to player_appearances
+- [x] #3 PlayerAppearance entity gains the corresponding field(s), following existing @JoinColumn/@Column conventions
+- [x] #4 Tests cover deriving/storing team side for both home and away appearances
 <!-- AC:END -->
+
+
 
 ## Implementation Notes
 
