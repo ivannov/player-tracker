@@ -4,6 +4,7 @@ title: Team-side attribution for PlayerAppearance and MatchEvent
 status: To Do
 assignee: []
 created_date: '2026-07-12 21:45'
+updated_date: '2026-07-19 10:32'
 labels:
   - backend
   - model
@@ -36,6 +37,17 @@ Should land before or alongside LT-004.03, since that task's manual-entry UI is 
 - [ ] #3 PlayerAppearance entity gains the corresponding field(s), following existing @JoinColumn/@Column conventions
 - [ ] #4 Tests cover deriving/storing team side for both home and away appearances
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decision: added a participation_id FK column to player_appearances (references participations),
+rather than an explicit home/away enum. This directly gives the join path PlayerAppearance ->
+Participation -> TeamFormation -> Team/Competition needed by LT-004.01's career timeline, and
+side (home/away) is derived by comparing participation.id against Match.homeTeam.id /
+Match.awayTeam.id -- no separate enum needed. Covered by
+MatchEventTest#playerAppearanceParticipationDerivesHomeOrAwaySide.
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
