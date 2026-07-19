@@ -3,9 +3,10 @@ id: LT-004
 title: >-
   Player & Match manual management (CRUD + public search/detail + career
   timeline)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:39'
+updated_date: '2026-07-19 12:24'
 labels:
   - frontend
   - backend
