@@ -6,13 +6,29 @@
 
 {#styles}
     main { padding-block: 2rem; }
-    article { max-width: 44rem; margin-inline: auto; }
+    article { max-width: 60rem; margin-inline: auto; }
     .scoreboard { display: flex; align-items: center; justify-content: center; gap: 2rem; padding-block: 1.5rem; text-align: center; }
     .scoreboard .side { flex: 1; }
     .scoreboard .side h3 { margin-bottom: 0.25rem; }
     .scoreboard .side p { color: var(--pico-muted-color); margin: 0; }
     .scoreboard .score { font-size: 2rem; font-weight: bold; white-space: nowrap; }
     .match-date { text-align: center; color: var(--pico-muted-color); margin-bottom: 0; }
+    .lineups { display: flex; flex-direction: column; gap: 2rem; margin-top: 2rem; }
+    .lineups h4 { margin-bottom: 0.5rem; }
+    .lineups .table-scroll { overflow-x: auto; }
+    .lineups table { font-size: 0.9rem; }
+    td.num { width: 2.5rem; text-align: center; }
+    td.starter { width: 4rem; text-align: center; }
+    .sub-form, .event-form { display: flex; gap: 0.25rem; align-items: center; }
+    .sub-form input, .event-form input { width: 3.5rem; padding: 0.2rem 0.4rem; margin: 0; }
+    .event-form select { padding: 0.2rem 0.4rem; margin: 0; }
+    .event-badge { display: inline-block; background: var(--pico-card-sectioning-background-color); border-radius: var(--pico-border-radius); padding: 0.1rem 0.4rem; margin: 0.1rem; white-space: nowrap; }
+    .event-badge a { color: var(--pico-del-color); margin-left: 0.3rem; text-decoration: none; }
+    td.remove { width: 2rem; text-align: center; }
+    td.remove a { color: var(--pico-del-color); line-height: 1; }
+    .add-appearance { margin-top: 2rem; }
+    .add-appearance .fields { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .add-appearance input, .add-appearance select { margin: 0; width: auto; }
 {/styles}
 
 {#main}
@@ -30,6 +46,102 @@
                 <p>{match.awayTeam.competition.name} · {match.awayTeam.season}</p>
             </div>
         </div>
+
+        <div class="lineups">
+            <div>
+                <h4>{match.homeTeam.teamFormation.team.name}</h4>
+                <div class="table-scroll">
+                    {#include MatchResource/lineupTable rows=homeAppearances isAdmin=isAdmin matchId=match.id eventTypes=eventTypes /}
+                </div>
+            </div>
+            <div>
+                <h4>{match.awayTeam.teamFormation.team.name}</h4>
+                <div class="table-scroll">
+                    {#include MatchResource/lineupTable rows=awayAppearances isAdmin=isAdmin matchId=match.id eventTypes=eventTypes /}
+                </div>
+            </div>
+        </div>
+
+        {#if isAdmin}
+        <div class="add-appearance">
+            <h4>Добави играч към състав</h4>
+
+            <datalist id="players-list">
+                {#for p in allPlayers}
+                <option value="{p.names}" data-id="{p.id}"></option>
+                {/for}
+            </datalist>
+
+            <form method="post" action="/matches/{match.id}/appearances" id="add-appearance-form">
+                <div class="fields">
+                    <select name="participationId" required>
+                        <option value="{match.homeTeam.id}">{match.homeTeam.teamFormation.team.name} (домакин)</option>
+                        <option value="{match.awayTeam.id}">{match.awayTeam.teamFormation.team.name} (гост)</option>
+                    </select>
+
+                    <input type="text" id="player-search" list="players-list" autocomplete="off" placeholder="Търсете играч по име">
+                    <input type="hidden" name="playerId" id="player-id-field">
+                    <button type="button" class="outline secondary" id="new-player-toggle">+ Нов играч</button>
+
+                    <span id="new-player-fields" hidden>
+                        <input type="text" name="newPlayerName" id="new-player-name" placeholder="Име на нов играч">
+                        <button type="button" class="outline secondary" id="existing-player-toggle">← Търсене</button>
+                    </span>
+
+                    <label><input type="checkbox" name="starter" value="true"> Титуляр</label>
+                    <input type="number" name="number" placeholder="№" min="0" max="99">
+
+                    <button type="submit">Добави</button>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            (function () {
+                var datalist = document.getElementById('players-list');
+                var searchInput = document.getElementById('player-search');
+                var hiddenField = document.getElementById('player-id-field');
+                var newToggle = document.getElementById('new-player-toggle');
+                var newFields = document.getElementById('new-player-fields');
+                var existingToggle = document.getElementById('existing-player-toggle');
+                var newNameInput = document.getElementById('new-player-name');
+
+                function resolvePlayerId() {
+                    var value = searchInput.value.trim().toLowerCase();
+                    var matches = [];
+                    for (var i = 0; i < datalist.options.length; i++) {
+                        if (datalist.options[i].value.trim().toLowerCase() === value) {
+                            matches.push(datalist.options[i].dataset.id);
+                        }
+                    }
+                    var matchedId = value && matches.length === 1 ? matches[0] : '';
+                    hiddenField.value = matchedId;
+                    searchInput.setCustomValidity(value && !matchedId
+                        ? 'Изберете играч от списъка или натиснете „+ Нов играч“.'
+                        : '');
+                }
+
+                searchInput.addEventListener('input', resolvePlayerId);
+
+                newToggle.addEventListener('click', function () {
+                    searchInput.hidden = true;
+                    hiddenField.value = '';
+                    searchInput.value = '';
+                    searchInput.setCustomValidity('');
+                    newToggle.hidden = true;
+                    newFields.hidden = false;
+                    newNameInput.focus();
+                });
+
+                existingToggle.addEventListener('click', function () {
+                    newFields.hidden = true;
+                    newNameInput.value = '';
+                    searchInput.hidden = false;
+                    newToggle.hidden = false;
+                });
+            })();
+        </script>
+        {/if}
     </article>
 </div>
 {/main}

@@ -1,0 +1,74 @@
+<table>
+    <thead>
+        <tr>
+            <th>№</th>
+            <th>Играч</th>
+            <th>Тит.</th>
+            <th>Смяна</th>
+            <th>Събития</th>
+            {#if isAdmin}<th></th>{/if}
+        </tr>
+    </thead>
+    <tbody>
+        {#for row in rows}
+        <tr>
+            <td class="num">{row.appearance.number ?: '—'}</td>
+            <td><a href="/players/{row.appearance.player.id}">{row.appearance.player.names}</a></td>
+            <td class="starter">{#if row.appearance.starter}Да{#else}Не{/if}</td>
+            <td>
+                {#if isAdmin}
+                <form method="post" action="/matches/{matchId}/appearances/{row.appearance.id}/substitution" class="sub-form">
+                    <input type="number" name="substitutedInMinute" title="Влиза в минута" min="0" max="130"
+                           value="{row.appearance.substitutedInMinute ?: ''}">
+                    <input type="number" name="substitutedOutMinute" title="Излиза в минута" min="0" max="130"
+                           value="{row.appearance.substitutedOutMinute ?: ''}">
+                    <button type="submit" class="outline secondary">✓</button>
+                </form>
+                {#else}
+                {#if row.appearance.substitutedInMinute}{row.appearance.substitutedInMinute}'{#else}—{/if}
+                /
+                {#if row.appearance.substitutedOutMinute}{row.appearance.substitutedOutMinute}'{#else}—{/if}
+                {/if}
+            </td>
+            <td>
+                {#for e in row.events}
+                <span class="event-badge">
+                    {#if e.minute}{e.minute}' {/if}{e.type.displayLabel}
+                    {#if isAdmin}
+                    <a href="#"
+                       hx-delete="/matches/{matchId}/events/{e.id}"
+                       hx-confirm="Изтриване на събитие?"
+                       hx-target="closest span"
+                       hx-swap="outerHTML"
+                       aria-label="Изтрий събитие">×</a>
+                    {/if}
+                </span>
+                {/for}
+                {#if isAdmin}
+                <form method="post" action="/matches/{matchId}/appearances/{row.appearance.id}/events" class="event-form">
+                    <select name="type" required>
+                        {#for t in eventTypes}
+                        <option value="{t.name()}">{t.displayLabel}</option>
+                        {/for}
+                    </select>
+                    <input type="number" name="minute" title="Минута" min="0" max="130">
+                    <button type="submit" class="outline secondary">+</button>
+                </form>
+                {/if}
+            </td>
+            {#if isAdmin}
+            <td class="remove">
+                <a href="#"
+                   hx-delete="/matches/{matchId}/appearances/{row.appearance.id}"
+                   hx-confirm="Премахване на {row.appearance.player.names} от състава?"
+                   hx-target="closest tr"
+                   hx-swap="outerHTML"
+                   aria-label="Премахни {row.appearance.player.names}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                </a>
+            </td>
+            {/if}
+        </tr>
+        {/for}
+    </tbody>
+</table>
