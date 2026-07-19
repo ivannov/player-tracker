@@ -1,10 +1,10 @@
 ---
 id: LT-010
 title: Team-side attribution for PlayerAppearance and MatchEvent
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-12 21:45'
-updated_date: '2026-07-19 10:32'
+updated_date: '2026-07-19 10:41'
 labels:
   - backend
   - model
@@ -53,5 +53,5 @@ MatchEventTest#playerAppearanceParticipationDerivesHomeOrAwaySide.
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
