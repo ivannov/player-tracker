@@ -1,0 +1,39 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; align-items: center; }
+    .form-actions button { flex: 1; }
+    .form-actions button[type="submit"] { flex: 3; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article class="form-card">
+        <header>
+            <h2>{#if player.id}Редактирай играч{#else}Нов играч{/if}</h2>
+        </header>
+
+        <form method="post"
+              action="{#if player.id}/players/{player.id}{#else}/players{/if}">
+
+            <label for="names">Име <span aria-hidden="true">*</span></label>
+            <input type="text" id="names" name="names"
+                   value="{player.names ?: ''}" required autofocus>
+
+            <div class="form-actions">
+                <button type="submit">Запази</button>
+                <button type="submit" form="back-nav" class="secondary">Назад</button>
+            </div>
+        </form>
+    </article>
+</div>
+<form id="back-nav" action="/players" method="get" hidden></form>
+{/main}
+
+{/include}

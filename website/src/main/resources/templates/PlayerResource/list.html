@@ -1,0 +1,56 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    article { max-width: 50rem; margin-inline: auto; }
+    article header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .search-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .search-form input { margin-bottom: 0; }
+    td.edit { width: 2.5rem; text-align: center; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article>
+        <header>
+            <hgroup>
+                <h2>Играчи</h2>
+                <p>Търсене на играчи и кариерна хронология</p>
+            </hgroup>
+            {#if isAdmin}
+            <a href="/players/new" role="button">+ Добави</a>
+            {/if}
+        </header>
+
+        <form class="search-form" method="get" action="/players">
+            <input type="search" name="q" placeholder="Търсене по име" value="{q ?: ''}">
+            <button type="submit" class="secondary">Търси</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Име</th>
+                    {#if isAdmin}<th></th>{/if}
+                </tr>
+            </thead>
+            <tbody>
+                {#for p in players}
+                <tr>
+                    <td><a href="/players/{p.id}">{p.names}</a></td>
+                    {#if isAdmin}
+                    <td class="edit"><a href="/players/{p.id}/edit" aria-label="Редактирай {p.names}">✎</a></td>
+                    {/if}
+                </tr>
+                {/for}
+            </tbody>
+        </table>
+    </article>
+</div>
+{/main}
+
+{/include}

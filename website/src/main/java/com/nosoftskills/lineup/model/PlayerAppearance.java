@@ -20,6 +20,10 @@ public class PlayerAppearance extends TrackerEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     public Match match;
 
+    // Must equal match.homeTeam or match.awayTeam; this is how the appearance's side is derived.
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    public Participation participation;
+
     @Column(name = "starter", nullable = false)
     public boolean starter;
 

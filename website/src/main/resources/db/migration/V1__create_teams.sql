@@ -68,6 +68,7 @@ CREATE TABLE player_appearances (
     last_updated            TIMESTAMP NOT NULL,
     player_id               BIGINT    NOT NULL REFERENCES players(id),
     match_id                BIGINT    NOT NULL REFERENCES matches(id),
+    participation_id        BIGINT    NOT NULL REFERENCES participations(id),
     starter                 BOOLEAN   NOT NULL,
     number                  SMALLINT,
     substituted_in_minute   SMALLINT CHECK (substituted_in_minute IS NULL OR substituted_in_minute BETWEEN 0 AND 130),

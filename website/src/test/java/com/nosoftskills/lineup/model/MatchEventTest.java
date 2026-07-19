@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -66,6 +67,7 @@ class MatchEventTest {
             PlayerAppearance pa = new PlayerAppearance();
             pa.player = p;
             pa.match = m;
+            pa.participation = home;
             pa.starter = false;
             pa.number = 17;
             pa.substitutedInMinute = 60;
@@ -95,6 +97,45 @@ class MatchEventTest {
             PlayerAppearance pa = PlayerAppearance.findById(playerAppearanceId);
             assertEquals((short) 60, pa.substitutedInMinute);
             assertEquals((short) 85, pa.substitutedOutMinute);
+        });
+    }
+
+    @Test
+    void playerAppearanceParticipationDerivesHomeOrAwaySide() {
+        QuarkusTransaction.requiringNew().run(() -> {
+            Match m = Match.findById(matchId);
+            PlayerAppearance homeAppearance = PlayerAppearance.findById(playerAppearanceId);
+
+            assertEquals(homeParticipationId, homeAppearance.participation.id);
+            assertEquals(m.homeTeam.id, homeAppearance.participation.id);
+            assertNotEquals(m.awayTeam.id, homeAppearance.participation.id);
+        });
+
+        Long awayAppearanceId = QuarkusTransaction.requiringNew().call(() -> {
+            Player awayPlayer = new Player();
+            awayPlayer.names = "Away Side Player";
+            awayPlayer.persist();
+
+            PlayerAppearance pa = new PlayerAppearance();
+            pa.player = awayPlayer;
+            pa.match = Match.findById(matchId);
+            pa.participation = Participation.findById(awayParticipationId);
+            pa.starter = true;
+            pa.persist();
+            return pa.id;
+        });
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            Match m = Match.findById(matchId);
+            PlayerAppearance awayAppearance = PlayerAppearance.findById(awayAppearanceId);
+
+            assertEquals(awayParticipationId, awayAppearance.participation.id);
+            assertEquals(m.awayTeam.id, awayAppearance.participation.id);
+            assertNotEquals(m.homeTeam.id, awayAppearance.participation.id);
+
+            Long playerToDelete = awayAppearance.player.id;
+            PlayerAppearance.deleteById(awayAppearanceId);
+            Player.deleteById(playerToDelete);
         });
     }
 
@@ -137,6 +178,7 @@ class MatchEventTest {
             PlayerAppearance pa = new PlayerAppearance();
             pa.player = Player.findById(playerId);
             pa.match = Match.findById(matchId);
+            pa.participation = Participation.findById(homeParticipationId);
             pa.starter = false;
             pa.number = 17;
             pa.persist();
@@ -160,6 +202,7 @@ class MatchEventTest {
             PlayerAppearance fullMinutes = new PlayerAppearance();
             fullMinutes.player = fullMinutesPlayer;
             fullMinutes.match = unplayed;
+            fullMinutes.participation = Participation.findById(awayParticipationId);
             fullMinutes.starter = true;
             fullMinutes.persist();
 

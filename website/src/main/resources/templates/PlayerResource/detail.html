@@ -1,0 +1,63 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    article { max-width: 60rem; margin-inline: auto; }
+    article header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .events { font-size: 0.85rem; color: var(--pico-muted-color); }
+{/styles}
+
+{#main}
+<div class="container">
+    <article>
+        <header>
+            <hgroup>
+                <h2>{player.names}</h2>
+                <p>Кариерна хронология</p>
+            </hgroup>
+            {#if isAdmin}
+            <a href="/players/{player.id}/edit" role="button" class="secondary">Редактирай</a>
+            {/if}
+        </header>
+
+        {#if timeline.isEmpty}
+        <p>Няма записани мачове за този играч.</p>
+        {#else}
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Отбор</th>
+                    <th>Лига / турнир</th>
+                    <th>Сезон</th>
+                    <th>Титуляр</th>
+                    <th>Събития</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#for row in timeline}
+                <tr>
+                    <td>{row.appearance.match.date}</td>
+                    <td>
+                        {row.appearance.participation.teamFormation.team.name}{#if row.appearance.participation.teamFormation.type.label.isEmpty}{#else} {row.appearance.participation.teamFormation.type.label}{/if}
+                    </td>
+                    <td>{row.appearance.participation.competition.name}</td>
+                    <td>{row.appearance.participation.season}</td>
+                    <td>{#if row.appearance.starter}Да{#else}Не{/if}</td>
+                    <td class="events">
+                        {#for e in row.events}{e.minute}' {e.type.displayLabel}{#if e_hasNext}, {/if}{/for}
+                    </td>
+                </tr>
+                {/for}
+            </tbody>
+        </table>
+        {/if}
+    </article>
+</div>
+{/main}
+
+{/include}
