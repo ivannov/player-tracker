@@ -1,0 +1,76 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    article { max-width: 60rem; margin-inline: auto; }
+    article header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .filters { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end; }
+    .filters > div { flex: 1; min-width: 12rem; }
+    .filters label { margin-bottom: 0.25rem; }
+    .filters button { white-space: nowrap; }
+    td.score { text-align: center; white-space: nowrap; }
+{/styles}
+
+{#main}
+<div class="container">
+    <article>
+        <header>
+            <hgroup>
+                <h2>Мачове</h2>
+                <p>Резултати и срещи по лиги и дати</p>
+            </hgroup>
+            {#if isAdmin}
+            <a href="/matches/new" role="button">+ Нов мач</a>
+            {/if}
+        </header>
+
+        <form class="filters" method="get" action="/matches">
+            <div>
+                <label for="competitionId">Лига / турнир</label>
+                <select id="competitionId" name="competitionId">
+                    <option value="">Всички</option>
+                    {#for c in competitions}
+                    <option value="{c.id}" {#if c.id.equals(competitionId)}selected{/if}>{c.name}</option>
+                    {/for}
+                </select>
+            </div>
+            <div>
+                <label for="date">Дата</label>
+                <input type="date" id="date" name="date" value="{date ?: ''}">
+            </div>
+            <button type="submit" class="secondary">Филтрирай</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Домакин</th>
+                    <th>Гост</th>
+                    <th>Резултат</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#for m in matches}
+                <tr>
+                    <td><a href="/matches/{m.id}">{m.date}</a></td>
+                    <td>
+                        {m.homeTeam.teamFormation.team.name}{#if m.homeTeam.teamFormation.type.label.isEmpty}{#else} {m.homeTeam.teamFormation.type.label}{/if}
+                    </td>
+                    <td>
+                        {m.awayTeam.teamFormation.team.name}{#if m.awayTeam.teamFormation.type.label.isEmpty}{#else} {m.awayTeam.teamFormation.type.label}{/if}
+                    </td>
+                    <td class="score">{#if m.homeScore}{m.homeScore} : {m.awayScore}{#else}—{/if}</td>
+                </tr>
+                {/for}
+            </tbody>
+        </table>
+    </article>
+</div>
+{/main}
+
+{/include}
