@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-07-11 15:43'
+updated_date: '2026-07-22 15:41'
 labels:
   - backend
   - matching
@@ -29,5 +30,5 @@ Split across three subtasks: (1) schema for external refs / aliases / ambiguity 
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
