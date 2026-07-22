@@ -32,3 +32,9 @@ Split across three subtasks: (1) schema for external refs / aliases / ambiguity 
 <!-- DOD:BEGIN -->
 - [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Completed across three subtasks: LT-005.01 added the disambiguation schema (team_external_refs, player_aliases, ambiguity_reviews/ambiguity_candidates, pg_trgm + vector extensions, players.name_embedding vector(768)); LT-005.02 added PlayerMatchingService (trigram-based, team-scoped) and wired TeamExternalRef capture into the BFU import wizard's save step; LT-005.03 layered local AI embedding re-ranking via Ollama (OllamaEmbeddingClient + PlayerEmbeddingSyncJob) on top, with a hard fallback to trigram-only matching when Ollama is unreachable. No UI in this epic by design -- the admin ambiguity inbox is the daily-scheduler epic (LT-009). mvn verify: 137/137 tests pass across all three subtasks.
+<!-- SECTION:FINAL_SUMMARY:END -->
