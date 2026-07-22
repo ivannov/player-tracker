@@ -3,7 +3,7 @@ id: LT-005
 title: >-
   Team/player disambiguation memory + matching service (pg_trgm + local AI
   embeddings)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:43'
 updated_date: '2026-07-22 15:41'
