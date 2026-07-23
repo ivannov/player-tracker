@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-07-11 15:43'
-updated_date: '2026-07-22 15:41'
+updated_date: '2026-07-23 13:23'
 labels:
   - backend
   - matching
@@ -36,5 +36,5 @@ Split across three subtasks: (1) schema for external refs / aliases / ambiguity 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Completed across three subtasks: LT-005.01 added the disambiguation schema (team_external_refs, player_aliases, ambiguity_reviews/ambiguity_candidates, pg_trgm + vector extensions, players.name_embedding vector(768)); LT-005.02 added PlayerMatchingService (trigram-based, team-scoped) and wired TeamExternalRef capture into the BFU import wizard's save step; LT-005.03 layered local AI embedding re-ranking via Ollama (OllamaEmbeddingClient + PlayerEmbeddingSyncJob) on top, with a hard fallback to trigram-only matching when Ollama is unreachable. No UI in this epic by design -- the admin ambiguity inbox is the daily-scheduler epic (LT-009). mvn verify: 137/137 tests pass across all three subtasks.
+Completed across three subtasks: LT-005.01 added the disambiguation schema (team_aliases, player_aliases, ambiguity_reviews/ambiguity_candidates, pg_trgm + vector extensions, players.name_embedding vector(768)); LT-005.02 added PlayerMatchingService (trigram-based, team-scoped, concurrency-safe) and wired TeamAlias capture -- with TEAM ambiguity queuing on conflict -- into the BFU import wizard's save step; LT-005.03 layered local AI embedding matching via Ollama on top, scored as an independent candidate pool from trigram with its own thresholds, with a hard fallback to trigram-only matching when Ollama is unreachable. No UI in this epic by design -- the admin ambiguity inbox is the daily-scheduler epic (LT-009). mvn verify: 137/137 tests pass.
 <!-- SECTION:FINAL_SUMMARY:END -->
