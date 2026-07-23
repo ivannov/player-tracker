@@ -47,6 +47,22 @@ You can then execute your native executable with: `./target/lineup-tracker-1.0.0
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
+## Local AI embeddings (Ollama)
+
+Player-name disambiguation (LT-005) layers semantic matching on top of trigram similarity, using a
+local [Ollama](https://ollama.com/) instance to compute name embeddings with the `nomic-embed-text`
+model (768 dimensions, matching the `players.name_embedding vector(768)` column).
+
+Start Ollama alongside the database and pull the model once:
+```shell script
+docker compose up -d ollama
+docker compose exec ollama ollama pull nomic-embed-text
+```
+
+The app talks to Ollama at `http://localhost:11434` by default (override with the `OLLAMA_URL` env
+var). If Ollama isn't running or the model hasn't been pulled yet, matching falls back to
+trigram-only similarity automatically -- it's an enhancement layer, never a hard dependency.
+
 ## Related Guides
 
 - REST Qute ([guide](https://quarkus.io/guides/qute-reference#rest_integration)): Qute integration for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.

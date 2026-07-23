@@ -1,9 +1,11 @@
 package com.nosoftskills.lineup.participation;
 
 import com.nosoftskills.lineup.model.Competition;
+import com.nosoftskills.lineup.model.ExternalRefSource;
 import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.model.Team;
+import com.nosoftskills.lineup.model.TeamAlias;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.scraping.BfuLeagueScraperService;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
@@ -48,8 +50,10 @@ class ParticipationImportResourceTest {
 
     @AfterEach
     void cleanup() {
-        QuarkusTransaction.requiringNew().run(() ->
-                TeamFormationFixtures.delete(new TeamFormationFixtures.Ids(teamId, teamFormationId, competitionId)));
+        QuarkusTransaction.requiringNew().run(() -> {
+            TeamAlias.delete("team.id", teamId);
+            TeamFormationFixtures.delete(new TeamFormationFixtures.Ids(teamId, teamFormationId, competitionId));
+        });
     }
 
     @Test
@@ -354,6 +358,53 @@ class ParticipationImportResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void saveWritesTeamAliasForResolvedTeam() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("competitionId", competitionId)
+                .formParam("season", "2024-2025")
+                .formParam("scrapedName", "Import Test Team")
+                .formParam("teamId", teamId)
+                .formParam("teamName", "")
+                .formParam("teamLocation", "")
+                .formParam("formationTypeId", teamFormationId)
+                .formParam("newFormationType", "")
+                .when().post("/participations/import/save")
+                .then().statusCode(303);
+
+        TeamAlias alias = QuarkusTransaction.requiringNew().call(() ->
+                TeamAlias.<TeamAlias>find(
+                        "source = ?1 and rawName = ?2", ExternalRefSource.BFU_TOURNAMENTS, "Import Test Team")
+                        .firstResult());
+        assertEquals(teamId, alias.team.id);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void saveOnRepeatImportReusesTeamAliasInsteadOfDuplicating() {
+        for (String season : List.of("2024/2025", "2025/2026")) {
+            given().redirects().follow(false)
+                    .contentType(ContentType.URLENC)
+                    .formParam("competitionId", competitionId)
+                    .formParam("season", season)
+                    .formParam("scrapedName", "Import Test Team")
+                    .formParam("teamId", teamId)
+                    .formParam("teamName", "")
+                    .formParam("teamLocation", "")
+                    .formParam("formationTypeId", teamFormationId)
+                    .formParam("newFormationType", "")
+                    .when().post("/participations/import/save")
+                    .then().statusCode(303);
+        }
+
+        long aliasCount = QuarkusTransaction.requiringNew().call(() ->
+                TeamAlias.count(
+                        "source = ?1 and rawName = ?2", ExternalRefSource.BFU_TOURNAMENTS, "Import Test Team"));
+        assertEquals(1, aliasCount);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void saveDuplicateIsSkippedSilently() {
         QuarkusTransaction.requiringNew().run(() -> {
             Participation p = new Participation();
@@ -449,9 +500,16 @@ class ParticipationImportResourceTest {
 
         QuarkusTransaction.requiringNew().run(() -> {
             Team newTeam = Team.<Team>find("name", "New FC").firstResult();
+
+            long aliasCount = TeamAlias.count(
+                    "source = ?1 and rawName = ?2 and team.id = ?3",
+                    ExternalRefSource.BFU_TOURNAMENTS, "New FC", newTeam.id);
+            assertEquals(1, aliasCount);
+
+            TeamAlias.delete("team.id", newTeam.id);
             Participation.delete("teamFormation.team.id", newTeam.id);
             TeamFormation.delete("team.id", newTeam.id);
-            newTeam.delete();
+            Team.deleteById(newTeam.id);
         });
     }
 }
