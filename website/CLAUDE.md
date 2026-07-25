@@ -64,6 +64,12 @@ Web app that scrapes starting lineups from the Bulgarian Football Union (BFU) si
 - Test data setup/teardown uses `QuarkusTransaction.requiringNew().call(...)` / `.run(...)`
 - Test profile uses Quarkus Dev Services (PostgreSQL container) — DB credentials are in `%dev` profile only, leaving test profile unconfigured so Dev Services activates
 
+## Experience Playbook (Open Reasoning Format)
+This project records domain-specific traps and validated fixes in `./experiences/`, following the [Open Reasoning Format](https://github.com/glaforge/open-reasoning-format) spec, via the `manage-experience` skill (`manage-experience/SKILL.md`).
+- **Before tackling a non-trivial task** (Hibernate entity mapping, Qute templates, resource tests, scraping), run `python3 manage-experience/scripts/experiences.py list-categories`, then `get-frontmatter --category <domain-id>` for any matching category, then `read-experience --id <EXP-ID>` for a specific match. Apply the "Abstracted Insight" and "Validated Path" before writing code.
+- **After resolving a multi-step debugging loop, an unexpected trap, or a domain-specific workaround**, record it with `python3 manage-experience/scripts/experiences.py create-experience --domain <domain-id> --title ... --description ... --keywords ... --complexity ... --objective ... --trap ... --insight ... --validated-path ... --checklist-item ...` — this writes a new playbook and updates `experiences/INDEX.md` automatically.
+- Existing domains: `quarkus-hibernate`, `qute-templates`, `quarkus-testing`. Add new domain categories to `experiences/INDEX.md`'s frontmatter `categories` list as new problem areas emerge (e.g. `bfu-scraping`, `flyway-migrations`).
+
 <!-- BACKLOG.MD MCP GUIDELINES START -->
 
 <CRITICAL_INSTRUCTION>
