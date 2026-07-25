@@ -30,5 +30,6 @@ categories:
 
 
 ## Category: BFU Site Scraping (`bfu-scraping`)
+* [EXP-20260725-0003](bfu-scraping/EXP-20260725-0003.md): bfu-tournaments.com league results view (?view=past-matches) has the whole season statically in one page load
 * [EXP-20260725-0002](bfu-scraping/EXP-20260725-0002.md): bfu-tournaments.com match pages: static SSR HTML with hover-tooltips already carries all data, no JS needed
 * [EXP-20260725-0001](bfu-scraping/EXP-20260725-0001.md): Recon a new scrape target via claude-in-chrome before writing selectors -- but outerHTML/innerHTML extraction is blocked
