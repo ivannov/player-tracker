@@ -11,6 +11,9 @@ categories:
   - id: "quarkus-testing"
     name: "Quarkus Testing"
     description: "Traps and validated patterns for @QuarkusTest + REST Assured resource tests, including redirect handling and status code assertions."
+  - id: "bfu-scraping"
+    name: "BFU Site Scraping"
+    description: "Traps and validated patterns for scraping the BFU-affiliated sites (bfu-tournaments.com, ebfu.net), including recon technique and real page structure."
 ---
 
 # Experiences Index
@@ -24,3 +27,7 @@ categories:
 
 ## Category: Quarkus Testing (`quarkus-testing`)
 * [EXP-20260725-0001](quarkus-testing/EXP-20260725-0001.md): REST Assured follows redirects by default — disable and assert 303 for Response.seeOther.
+
+
+## Category: BFU Site Scraping (`bfu-scraping`)
+* [EXP-20260725-0001](bfu-scraping/EXP-20260725-0001.md): Recon a new scrape target via claude-in-chrome before writing selectors -- but outerHTML/innerHTML extraction is blocked
