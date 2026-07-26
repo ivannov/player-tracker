@@ -1,9 +1,10 @@
 ---
 id: LT-007
 title: bfu-tournaments.com match-day scraper (primary source)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:44'
+updated_date: '2026-07-26 21:18'
 labels:
   - scraping
   - backend
