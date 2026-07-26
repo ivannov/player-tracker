@@ -19,6 +19,7 @@ categories:
 # Experiences Index
 
 ## Category: Quarkus Hibernate ORM Panache (`quarkus-hibernate`)
+* [EXP-20260726-0001](quarkus-hibernate/EXP-20260726-0001.md): Extracting a reusable resolution service from an inline resource: keep detached entities out of a separately-transactional bean
 * [EXP-20260725-0001](quarkus-hibernate/EXP-20260725-0001.md): Explicit @JoinColumn required for camelCase FK fields on @ManyToOne relationships.
 * [EXP-20260725-0002](quarkus-hibernate/EXP-20260725-0002.md): @Column(length=...) must match the VARCHAR(N) declared in the Flyway migration DDL.
 

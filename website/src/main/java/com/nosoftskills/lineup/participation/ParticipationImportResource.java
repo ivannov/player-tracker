@@ -1,8 +1,6 @@
 package com.nosoftskills.lineup.participation;
 
-import com.nosoftskills.lineup.model.AmbiguityReview;
-import com.nosoftskills.lineup.model.AmbiguityReviewStatus;
-import com.nosoftskills.lineup.model.AmbiguityReviewType;
+import com.nosoftskills.lineup.matching.TeamResolutionService;
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.ExternalRefSource;
 import com.nosoftskills.lineup.model.FormationType;
@@ -31,7 +29,6 @@ import org.jboss.resteasy.reactive.RestForm;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +40,9 @@ public class ParticipationImportResource {
 
     @Inject
     BfuLeagueScraperService scraperService;
+
+    @Inject
+    TeamResolutionService teamResolutionService;
 
     @Inject
     CurrentUser currentUser;
@@ -238,7 +238,8 @@ public class ParticipationImportResource {
                         .collect(Collectors.toSet()),
                 comp.id, normSeason);
 
-        Map<String, TeamAlias> teamAliasesByRawName = preloadTeamAliases(scrapedName);
+        Map<String, TeamAlias> teamAliasesByRawName =
+                teamResolutionService.preloadAliases(ExternalRefSource.BFU_TOURNAMENTS, scrapedName);
 
         for (int i = 0; i < count; i++) {
             RowResolution r = resolutions.get(i);
@@ -266,7 +267,8 @@ public class ParticipationImportResource {
             };
             if (tf == null) continue;
 
-            recordTeamAlias(teamAliasesByRawName, get(scrapedName, i), tf.team);
+            teamResolutionService.recordAlias(
+                    teamAliasesByRawName, ExternalRefSource.BFU_TOURNAMENTS, get(scrapedName, i), tf.team);
 
             // A freshly created team/formation can't already have a participation row.
             boolean exists = r.outcome() == RowOutcome.EXISTING_FORMATION && existingFormationIds.contains(tf.id);
@@ -280,54 +282,6 @@ public class ParticipationImportResource {
         }
 
         return Response.seeOther(URI.create("/participations")).build();
-    }
-
-    // Preloads existing TeamAlias rows for this batch's scraped names up front, mirroring
-    // buildContext()'s batching so recordTeamAlias never issues a per-row lookup query.
-    private Map<String, TeamAlias> preloadTeamAliases(List<String> scrapedNames) {
-        Map<String, TeamAlias> result = new HashMap<>();
-        if (scrapedNames == null) return result;
-        Set<String> keys = scrapedNames.stream().filter(s -> !isBlank(s)).collect(Collectors.toSet());
-        if (keys.isEmpty()) return result;
-        for (TeamAlias alias : TeamAlias.<TeamAlias>list(
-                "source = ?1 and rawName in ?2", ExternalRefSource.BFU_TOURNAMENTS, keys)) {
-            result.put(alias.rawName, alias);
-        }
-        return result;
-    }
-
-    // Remembers how a scraped BFU team name resolved, so re-encountering it next season is an
-    // exact lookup rather than a fresh fuzzy/manual match (LT-005.02). Never silently repoints an
-    // established mapping to a different team -- that would corrupt future lookups for this raw
-    // name -- instead it queues a TEAM ambiguity review for an admin to reconcile.
-    private void recordTeamAlias(Map<String, TeamAlias> existingAliases, String scrapedTeamName, Team team) {
-        if (isBlank(scrapedTeamName)) return;
-
-        TeamAlias alias = existingAliases.get(scrapedTeamName);
-        if (alias == null) {
-            alias = new TeamAlias();
-            alias.source = ExternalRefSource.BFU_TOURNAMENTS;
-            alias.rawName = scrapedTeamName;
-            alias.team = team;
-            alias.persist();
-            existingAliases.put(scrapedTeamName, alias);
-        } else if (!alias.team.id.equals(team.id)) {
-            queueTeamAmbiguityReview(scrapedTeamName, alias.team);
-        }
-    }
-
-    private void queueTeamAmbiguityReview(String scrapedTeamName, Team currentlyMappedTeam) {
-        boolean alreadyQueued = AmbiguityReview.count(
-                "type = ?1 and rawName = ?2 and status = ?3",
-                AmbiguityReviewType.TEAM, scrapedTeamName, AmbiguityReviewStatus.PENDING) > 0;
-        if (alreadyQueued) return;
-
-        AmbiguityReview review = new AmbiguityReview();
-        review.type = AmbiguityReviewType.TEAM;
-        review.rawName = scrapedTeamName;
-        review.team = currentlyMappedTeam;
-        review.status = AmbiguityReviewStatus.PENDING;
-        review.persist();
     }
 
     private String get(List<String> list, int i) {
