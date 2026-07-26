@@ -1,9 +1,10 @@
 ---
 id: LT-006
 title: ebfu.net match-lineup scraper (fallback source)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:43'
+updated_date: '2026-07-26 21:10'
 labels:
   - scraping
   - backend
