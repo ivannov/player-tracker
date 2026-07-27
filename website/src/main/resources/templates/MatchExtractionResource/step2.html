@@ -1,0 +1,76 @@
+<div id="extraction-wizard">
+    <article>
+        <header>
+            <h2>Открити мачове</h2>
+            <p>Прегледайте разпознатите отбори и играчи преди потвърждение. Намерени мачове: {counts.matchCount}, напълно разпознаваеми: {counts.resolvableMatchCount}.</p>
+        </header>
+
+        <form hx-post="/matches/extract/review"
+              hx-target="#extraction-wizard"
+              hx-swap="outerHTML"
+              hx-indicator="#review-spinner">
+            <input type="hidden" name="competitionId" value="{competitionId}">
+            <input type="hidden" name="fixturesUrl" value="{fixturesUrl}">
+            <input type="hidden" name="season" value="{season}">
+            <input type="hidden" name="date" value="{date}">
+
+            {#if rows.isEmpty}
+            <p>Няма намерени мачове за тази дата.</p>
+            {#else}
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>Домакин</th>
+                            <th>Гост</th>
+                            <th>Играчи (разпознати / неясни)</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#for row in rows}
+                        <tr>
+                            <td>
+                                {row.homeTeamName}
+                                {#if !row.homeResolved} <mark>непознат отбор</mark>{/if}
+                                <input type="hidden" name="matchUrl" value="{row.matchUrl}">
+                                <input type="hidden" name="homeTeamName" value="{row.homeTeamName}">
+                                <input type="hidden" name="homeResolved" value="{row.homeResolved}">
+                            </td>
+                            <td>
+                                {row.awayTeamName}
+                                {#if !row.awayResolved} <mark>непознат отбор</mark>{/if}
+                                <input type="hidden" name="awayTeamName" value="{row.awayTeamName}">
+                                <input type="hidden" name="awayResolved" value="{row.awayResolved}">
+                            </td>
+                            <td>
+                                {row.resolvedPlayerCount} / {row.ambiguousPlayerCount}
+                                <input type="hidden" name="resolvedPlayerCount" value="{row.resolvedPlayerCount}">
+                                <input type="hidden" name="ambiguousPlayerCount" value="{row.ambiguousPlayerCount}">
+                                <input type="hidden" name="totalPlayerCount" value="{row.totalPlayerCount}">
+                            </td>
+                            <td>
+                                {#if row.extractionError}
+                                <span>Грешка: {row.extractionError}</span>
+                                {#else if row.fullyResolvable}
+                                <span>Готов за запис</span>
+                                {#else}
+                                <span>Не може да се запише</span>
+                                {/if}
+                                <input type="hidden" name="fullyResolvable" value="{row.fullyResolvable}">
+                                <input type="hidden" name="extractionError" value="{row.extractionError ?: ''}">
+                            </td>
+                        </tr>
+                        {/for}
+                    </tbody>
+                </table>
+            </figure>
+            {/if}
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button type="submit" id="review-spinner">Продължи към потвърждение</button>
+                <a href="/matches/extract" role="button" class="secondary outline">Назад</a>
+            </div>
+        </form>
+    </article>
+</div>

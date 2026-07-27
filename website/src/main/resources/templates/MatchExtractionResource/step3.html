@@ -1,0 +1,57 @@
+<div id="extraction-wizard">
+    <article>
+        <header>
+            <h2>Преглед преди запис</h2>
+            <p>
+                Мачове: {counts.matchCount}, готови за запис: {counts.resolvableMatchCount}.
+                Играчи — разпознати: {counts.resolvedPlayerCount}, неясни: {counts.ambiguousPlayerCount}
+                (изпращат се в списъка за преглед на неясноти).
+            </p>
+        </header>
+
+        <form method="post" action="/matches/extract/confirm">
+            <input type="hidden" name="competitionId" value="{competitionId}">
+            <input type="hidden" name="fixturesUrl" value="{fixturesUrl}">
+            <input type="hidden" name="season" value="{season}">
+            <input type="hidden" name="date" value="{date}">
+
+            {#if !rows.isEmpty}
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>Домакин</th>
+                            <th>Гост</th>
+                            <th>Играчи (разпознати / неясни)</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#for row in rows}
+                        <tr>
+                            <td>{row.homeTeamName}{#if !row.homeResolved} <mark>непознат отбор</mark>{/if}</td>
+                            <td>{row.awayTeamName}{#if !row.awayResolved} <mark>непознат отбор</mark>{/if}</td>
+                            <td>{row.resolvedPlayerCount} / {row.ambiguousPlayerCount}</td>
+                            <td>
+                                {#if row.extractionError}
+                                Грешка: {row.extractionError}
+                                {#else if row.fullyResolvable}
+                                Готов за запис
+                                {#else}
+                                Не може да се запише
+                                {/if}
+                            </td>
+                        </tr>
+                        {/for}
+                    </tbody>
+                </table>
+            </figure>
+            {/if}
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button type="submit">Потвърди и запази</button>
+                <a href="/matches/extract" role="button" class="secondary outline">Назад</a>
+            </div>
+        </form>
+    </article>
+</div>

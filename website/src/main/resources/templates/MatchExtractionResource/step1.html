@@ -1,0 +1,60 @@
+{#include layout}
+
+{#nav}
+    {#appNav username=username /}
+{/nav}
+
+{#styles}
+    main { padding-block: 2rem; }
+    .form-card { max-width: 36rem; margin-inline: auto; }
+    .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+    .form-actions button[type="submit"] { flex: 3; }
+    .form-actions a { flex: 1; text-align: center; }
+    [aria-busy="true"] { opacity: 0.7; pointer-events: none; }
+{/styles}
+
+{#main}
+<div class="container">
+    <div id="extraction-wizard">
+        <article class="form-card">
+            <header>
+                <h2>Извличане на мачове</h2>
+            </header>
+
+            <form hx-post="/matches/extract/discover"
+                  hx-target="#extraction-wizard"
+                  hx-swap="outerHTML"
+                  hx-indicator="#discover-spinner">
+
+                <label for="competitionId">Лига / турнир</label>
+                <select id="competitionId" name="competitionId" required>
+                    <option value="">— изберете —</option>
+                    {#for c in competitions}
+                    <option value="{c.id}">{c.name}</option>
+                    {/for}
+                </select>
+
+                <label for="fixturesUrl">URL на резултатите в БФС</label>
+                <input type="url" id="fixturesUrl" name="fixturesUrl" required
+                       placeholder="https://bfu-tournaments.com/leagues/...?view=past-matches">
+
+                <label for="season">Сезон</label>
+                <input type="text" id="season" name="season"
+                       placeholder="2024/2025"
+                       pattern="\d\d\d\d/\d\d\d\d"
+                       maxlength="9" required>
+
+                <label for="date">Дата на кръга</label>
+                <input type="date" id="date" name="date" value="{today}" required>
+
+                <div class="form-actions">
+                    <button type="submit" id="discover-spinner">Открий мачове</button>
+                    <a href="/matches" role="button" class="secondary outline">Назад</a>
+                </div>
+            </form>
+        </article>
+    </div>
+</div>
+{/main}
+
+{/include}
