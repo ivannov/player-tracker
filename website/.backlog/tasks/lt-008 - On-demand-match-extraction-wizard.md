@@ -1,9 +1,10 @@
 ---
 id: LT-008
 title: On-demand match extraction wizard
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:44'
+updated_date: '2026-07-28 19:32'
 labels:
   - scraping
   - htmx
