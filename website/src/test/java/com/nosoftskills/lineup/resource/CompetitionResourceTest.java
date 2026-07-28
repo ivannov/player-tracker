@@ -1,6 +1,7 @@
 package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
+import com.nosoftskills.lineup.model.CompetitionExtractionConfig;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -12,6 +13,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class CompetitionResourceTest {
@@ -23,7 +26,10 @@ class CompetitionResourceTest {
         if (createdId != null) {
             Long id = createdId;
             createdId = null;
-            QuarkusTransaction.requiringNew().run(() -> Competition.deleteById(id));
+            QuarkusTransaction.requiringNew().run(() -> {
+                CompetitionExtractionConfig.delete("competition.id", id);
+                Competition.deleteById(id);
+            });
         }
     }
 
@@ -132,6 +138,51 @@ class CompetitionResourceTest {
                 .when().post("/competitions/" + createdId)
                 .then().statusCode(303)
                 .header("Location", endsWith("/competitions"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createWithFixturesUrlAndSeasonPersistsExtractionConfig() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("name", "Configured League")
+                .formParam("fixturesUrl", "https://bfu-tournaments.com/leagues/test?view=past-matches")
+                .formParam("currentSeason", "2025/2026")
+                .when().post("/competitions")
+                .then().statusCode(303);
+
+        createdId = QuarkusTransaction.requiringNew()
+                .call(() -> Competition.<Competition>find("name", "Configured League").firstResult().id);
+
+        CompetitionExtractionConfig config = QuarkusTransaction.requiringNew().call(() ->
+                CompetitionExtractionConfig.<CompetitionExtractionConfig>find("competition.id", createdId).firstResult());
+        assertEquals("https://bfu-tournaments.com/leagues/test?view=past-matches", config.fixturesUrl);
+        assertEquals("2025/2026", config.currentSeason);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void updateClearingFixturesUrlDeletesExtractionConfig() {
+        createdId = insertCompetition("Deconfigure Test League");
+        QuarkusTransaction.requiringNew().run(() -> {
+            CompetitionExtractionConfig config = new CompetitionExtractionConfig();
+            config.competition = Competition.findById(createdId);
+            config.fixturesUrl = "https://bfu-tournaments.com/leagues/test?view=past-matches";
+            config.currentSeason = "2025/2026";
+            config.persist();
+        });
+
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("name", "Deconfigure Test League")
+                .formParam("fixturesUrl", "")
+                .formParam("currentSeason", "")
+                .when().post("/competitions/" + createdId)
+                .then().statusCode(303);
+
+        CompetitionExtractionConfig config = QuarkusTransaction.requiringNew().call(() ->
+                CompetitionExtractionConfig.<CompetitionExtractionConfig>find("competition.id", createdId).firstResult());
+        assertNull(config);
     }
 
     @Test

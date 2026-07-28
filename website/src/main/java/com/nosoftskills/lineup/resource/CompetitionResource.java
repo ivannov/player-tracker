@@ -1,6 +1,7 @@
 package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
+import com.nosoftskills.lineup.model.CompetitionExtractionConfig;
 import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -31,7 +32,7 @@ public class CompetitionResource {
     @CheckedTemplate
     public static class Templates {
         public static native TemplateInstance list(String username, boolean isAdmin, List<Competition> competitions);
-        public static native TemplateInstance form(String username, Competition competition);
+        public static native TemplateInstance form(String username, Competition competition, CompetitionExtractionConfig extractionConfig);
     }
 
     public static class CompetitionForm {
@@ -39,6 +40,10 @@ public class CompetitionResource {
         public String name;
         @RestForm
         public String logoUrl;
+        @RestForm
+        public String fixturesUrl;
+        @RestForm
+        public String currentSeason;
     }
 
     @GET
@@ -52,7 +57,7 @@ public class CompetitionResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(currentUser.username(), new Competition());
+        return Templates.form(currentUser.username(), new Competition(), null);
     }
 
     @GET
@@ -62,7 +67,8 @@ public class CompetitionResource {
     public TemplateInstance editForm(@PathParam("id") Long id) {
         Competition c = Competition.findById(id);
         if (c == null) throw new NotFoundException();
-        return Templates.form(currentUser.username(), c);
+        CompetitionExtractionConfig config = findConfig(id);
+        return Templates.form(currentUser.username(), c, config);
     }
 
     @POST
@@ -73,6 +79,7 @@ public class CompetitionResource {
         c.name = f.name;
         c.logoUrl = f.logoUrl == null || f.logoUrl.isBlank() ? null : f.logoUrl;
         c.persist();
+        upsertConfig(c, f.fixturesUrl, f.currentSeason);
         return Response.seeOther(URI.create("/competitions")).build();
     }
 
@@ -85,6 +92,7 @@ public class CompetitionResource {
         if (c == null) throw new NotFoundException();
         c.name = f.name;
         c.logoUrl = f.logoUrl == null || f.logoUrl.isBlank() ? null : f.logoUrl;
+        upsertConfig(c, f.fixturesUrl, f.currentSeason);
         return Response.seeOther(URI.create("/competitions")).build();
     }
 
@@ -97,5 +105,28 @@ public class CompetitionResource {
         if (c == null) throw new NotFoundException();
         c.delete();
         return Response.noContent().build();
+    }
+
+    private CompetitionExtractionConfig findConfig(Long competitionId) {
+        return CompetitionExtractionConfig.find("competition.id", competitionId).firstResult();
+    }
+
+    // Both fields are required together (NOT NULL in the schema): blank input on either one
+    // deletes any existing config, disabling scheduled extraction for this competition rather
+    // than persisting a half-filled row.
+    private void upsertConfig(Competition competition, String fixturesUrl, String currentSeason) {
+        CompetitionExtractionConfig config = findConfig(competition.id);
+        if (fixturesUrl == null || fixturesUrl.isBlank() || currentSeason == null || currentSeason.isBlank()) {
+            if (config != null) config.delete();
+            return;
+        }
+
+        if (config == null) {
+            config = new CompetitionExtractionConfig();
+            config.competition = competition;
+        }
+        config.fixturesUrl = fixturesUrl;
+        config.currentSeason = currentSeason;
+        config.persist();
     }
 }

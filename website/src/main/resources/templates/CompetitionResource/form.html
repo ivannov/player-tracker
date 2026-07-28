@@ -30,6 +30,14 @@
             <input type="text" id="logoUrl" name="logoUrl"
                    value="{competition.logoUrl ?: ''}">
 
+            <label for="fixturesUrl">URL на календара (bfu-tournaments.com, за автоматично извличане)</label>
+            <input type="text" id="fixturesUrl" name="fixturesUrl"
+                   value="{extractionConfig.fixturesUrl ?: ''}">
+
+            <label for="currentSeason">Текущ сезон (за автоматично извличане)</label>
+            <input type="text" id="currentSeason" name="currentSeason" placeholder="2025/2026"
+                   value="{extractionConfig.currentSeason ?: ''}">
+
             <div class="form-actions">
                 <button type="submit">Запази</button>
                 <button type="submit" form="back-nav" class="secondary">Назад</button>

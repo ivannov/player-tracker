@@ -28,6 +28,7 @@ categories:
 * [EXP-20260725-0001](qute-templates/EXP-20260725-0001.md): Avoid `{N}` regex quantifiers in Qute HTML attributes — Qute parses them as expressions.
 
 ## Category: Quarkus Testing (`quarkus-testing`)
+* [EXP-20260728-0001](quarkus-testing/EXP-20260728-0001.md): Capture every child-entity id created across multi-branch test setup, or cleanup FK-violates and pollutes later tests
 * [EXP-20260725-0001](quarkus-testing/EXP-20260725-0001.md): REST Assured follows redirects by default — disable and assert 303 for Response.seeOther.
 
 

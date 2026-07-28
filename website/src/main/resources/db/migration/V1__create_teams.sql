@@ -33,6 +33,21 @@ CREATE TABLE competitions (
     logo_url     VARCHAR(512)
 );
 
+-- Opt-in config for LT-009's unattended scheduled extraction job: a competition with no row
+-- here is simply skipped by the job. fixtures_url already encodes a season query param (see
+-- BfuFixtureScraperService), so it and current_season are admin-maintained together, once per
+-- season -- kept out of the core competitions table since it's scheduling-specific, not a
+-- property of the competition itself.
+CREATE TABLE competition_extraction_configs (
+    id              BIGSERIAL    PRIMARY KEY,
+    version         INTEGER      NOT NULL DEFAULT 0,
+    created_at      TIMESTAMP    NOT NULL,
+    last_updated    TIMESTAMP    NOT NULL,
+    competition_id  BIGINT       NOT NULL UNIQUE REFERENCES competitions(id),
+    fixtures_url    VARCHAR(512) NOT NULL,
+    current_season  VARCHAR(9)   NOT NULL
+);
+
 CREATE TABLE participations (
     id                 BIGSERIAL  PRIMARY KEY,
     version            INTEGER    NOT NULL DEFAULT 0,
