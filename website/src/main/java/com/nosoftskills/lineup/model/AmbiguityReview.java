@@ -30,6 +30,12 @@ public class AmbiguityReview extends TrackerEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     public Match match;
 
+    // The source the raw name was scraped from, needed to write the correct player_aliases row
+    // back when an admin resolves this review from the inbox.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    public ExternalRefSource source;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     public AmbiguityReviewStatus status = AmbiguityReviewStatus.PENDING;

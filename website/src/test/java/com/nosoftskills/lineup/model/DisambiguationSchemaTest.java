@@ -108,6 +108,7 @@ class DisambiguationSchemaTest {
             review.type = AmbiguityReviewType.PLAYER;
             review.rawName = "I. Ivanov";
             review.team = Team.findById(teamId);
+            review.source = ExternalRefSource.BFU_TOURNAMENTS;
             review.persist();
             return review.id;
         });
@@ -146,6 +147,7 @@ class DisambiguationSchemaTest {
             review.type = AmbiguityReviewType.PLAYER;
             review.rawName = "I. Ivanov";
             review.team = Team.findById(teamId);
+            review.source = ExternalRefSource.BFU_TOURNAMENTS;
             review.persist();
             return review.id;
         });

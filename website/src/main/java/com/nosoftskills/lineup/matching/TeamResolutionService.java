@@ -52,11 +52,11 @@ public class TeamResolutionService {
             alias.persist();
             existingAliases.put(rawTeamName, alias);
         } else if (!alias.team.id.equals(team.id)) {
-            queueAmbiguityReview(rawTeamName, alias.team);
+            queueAmbiguityReview(source, rawTeamName, alias.team);
         }
     }
 
-    private void queueAmbiguityReview(String rawTeamName, Team currentlyMappedTeam) {
+    private void queueAmbiguityReview(ExternalRefSource source, String rawTeamName, Team currentlyMappedTeam) {
         boolean alreadyQueued = AmbiguityReview.count(
                 "type = ?1 and rawName = ?2 and status = ?3",
                 AmbiguityReviewType.TEAM, rawTeamName, AmbiguityReviewStatus.PENDING) > 0;
@@ -66,6 +66,7 @@ public class TeamResolutionService {
         review.type = AmbiguityReviewType.TEAM;
         review.rawName = rawTeamName;
         review.team = currentlyMappedTeam;
+        review.source = source;
         review.status = AmbiguityReviewStatus.PENDING;
         review.persist();
     }

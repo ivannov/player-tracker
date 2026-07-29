@@ -148,6 +148,7 @@ CREATE TABLE ambiguity_reviews (
     raw_name            VARCHAR(255) NOT NULL,
     team_id             BIGINT       NOT NULL REFERENCES teams(id),
     match_id            BIGINT       REFERENCES matches(id),
+    source              VARCHAR(20)  NOT NULL,
     status              VARCHAR(10)  NOT NULL DEFAULT 'PENDING',
     resolved_player_id  BIGINT       REFERENCES players(id),
     resolved_at         TIMESTAMP,

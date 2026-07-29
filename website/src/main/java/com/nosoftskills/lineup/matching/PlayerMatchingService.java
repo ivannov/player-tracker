@@ -83,7 +83,7 @@ public class PlayerMatchingService {
         }
 
         List<Candidate> candidatesForReview = mergeCandidates(trigramCandidates, embeddingCandidates);
-        return new MatchResult(null, queueForReview(rawName, teamId, candidatesForReview));
+        return new MatchResult(null, queueForReview(rawName, teamId, source, candidatesForReview));
     }
 
     private boolean isConfidentMatch(List<Candidate> candidates, double threshold, double margin) {
@@ -190,8 +190,11 @@ public class PlayerMatchingService {
     // Runs in its own REQUIRES_NEW transaction so a unique-constraint violation from a concurrent
     // resolve() call for the same (source, rawName, team) -- e.g. on-demand extraction racing the
     // scheduled job -- can be caught and handled here (reuse whichever alias committed first)
-    // instead of aborting the caller's outer transaction with an unhandled exception.
-    private Player writeAlias(ExternalRefSource source, String rawName, Long teamId, Player player) {
+    // instead of aborting the caller's outer transaction with an unhandled exception. Public so
+    // the ambiguity inbox (LT-009.02) can reuse the same alias-writing path when an admin
+    // resolves a queued review -- callers must ensure `player` already exists as a committed row
+    // before calling this, since it runs in its own separate database transaction.
+    public Player writeAlias(ExternalRefSource source, String rawName, Long teamId, Player player) {
         try {
             return QuarkusTransaction.requiringNew().call(() -> {
                 PlayerAlias alias = new PlayerAlias();
@@ -211,8 +214,11 @@ public class PlayerMatchingService {
     }
 
     // Reuses an existing PENDING review for the same rawName+team instead of piling up duplicate
-    // review rows every time an unresolved name gets re-scraped (e.g. by the nightly job).
-    private AmbiguityReview queueForReview(String rawName, Long teamId, List<Candidate> candidates) {
+    // review rows every time an unresolved name gets re-scraped (e.g. by the nightly job). Source
+    // is only set when creating a new review, not when reusing one, so a re-scrape from a
+    // different source doesn't repoint an already-queued review away from its original source.
+    private AmbiguityReview queueForReview(String rawName, Long teamId, ExternalRefSource source,
+            List<Candidate> candidates) {
         AmbiguityReview review = AmbiguityReview
                 .find("type = ?1 and rawName = ?2 and team.id = ?3 and status = ?4",
                         AmbiguityReviewType.PLAYER, rawName, teamId, AmbiguityReviewStatus.PENDING)
@@ -222,6 +228,7 @@ public class PlayerMatchingService {
             review.type = AmbiguityReviewType.PLAYER;
             review.rawName = rawName;
             review.team = em.getReference(Team.class, teamId);
+            review.source = source;
             review.status = AmbiguityReviewStatus.PENDING;
             review.persist();
         } else {
