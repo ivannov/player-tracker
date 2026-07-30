@@ -1,7 +1,7 @@
 ---
 id: LT-009
 title: Daily scheduled extraction job + admin ambiguity inbox
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-11 15:44'
 updated_date: '2026-07-30 09:41'
