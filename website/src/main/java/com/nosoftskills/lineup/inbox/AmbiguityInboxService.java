@@ -40,6 +40,10 @@ public class AmbiguityInboxService {
     public record CandidateView(Long playerId, String playerNames, java.math.BigDecimal score) {
     }
 
+    public long countPending() {
+        return AmbiguityReview.count("status = ?1", AmbiguityReviewStatus.PENDING);
+    }
+
     @Transactional
     public List<ReviewView> listPending() {
         List<AmbiguityReview> reviews = AmbiguityReview.find(

@@ -1,0 +1,36 @@
+<div id="inbox-list">
+{#if reviews.isEmpty}
+    <p>Няма чакащи прегледи.</p>
+{#else}
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Отбор</th>
+                <th>Извлечено име</th>
+                <th>Възможни съвпадения</th>
+            </tr>
+        </thead>
+        <tbody>
+            {#for review in reviews}
+            <tr>
+                <td>{review.teamName}</td>
+                <td>{review.rawName}</td>
+                <td>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                        {#for candidate in review.candidates}
+                        <form hx-post="/inbox/{review.id}/resolve" hx-target="#inbox-list" hx-swap="outerHTML" style="margin:0;">
+                            <input type="hidden" name="playerId" value="{candidate.playerId}">
+                            <button type="submit" class="outline">{candidate.playerNames} ({candidate.score})</button>
+                        </form>
+                        {/for}
+                        <form hx-post="/inbox/{review.id}/confirm-new" hx-target="#inbox-list" hx-swap="outerHTML" style="margin:0;">
+                            <button type="submit" class="secondary">+ Нов играч: {review.rawName}</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {/for}
+        </tbody>
+    </table>
+{/if}
+</div>

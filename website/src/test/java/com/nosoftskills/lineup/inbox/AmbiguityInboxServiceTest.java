@@ -117,6 +117,17 @@ class AmbiguityInboxServiceTest {
     }
 
     @Test
+    void countPendingReflectsOnlyPendingReviews() {
+        Long playerId = createPlayer("Dimitar Dimitrov");
+        Long pendingReviewId = queueReview("Dimitar Dimitrov", List.of(playerId));
+        long before = inboxService.countPending();
+
+        inboxService.resolveReview(pendingReviewId, playerId);
+
+        assertEquals(before - 1, inboxService.countPending());
+    }
+
+    @Test
     void resolveReviewPicksExistingPlayerWritesAliasAndMarksResolved() {
         Long playerId = createPlayer("Petar Petrov");
         Long reviewId = queueReview("Petar Petrov", List.of(playerId));

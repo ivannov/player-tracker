@@ -24,6 +24,7 @@
             </ul>
         </details>
     </li>
+    <li class="desktop-only" id="inbox-badge" hx-get="/inbox/badge" hx-trigger="load" hx-swap="outerHTML"></li>
     <li class="desktop-only">
         <details class="dropdown" id="dd-user">
             <summary>{username}</summary>
@@ -52,6 +53,7 @@
                 <li><a href="/matches/extract">Извлечи за дата…</a></li>
                 <li><a href="#">Планировчик</a></li>
                 <li><hr></li>
+                <li><a href="/inbox">Неясноти</a></li>
                 <li><a href="#">Смени парола</a></li>
                 <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
             </ul>

@@ -16,7 +16,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 class InboxResourceTest {
@@ -48,18 +49,66 @@ class InboxResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void adminListReturnsPendingReviewsAsJson() {
+    void adminListRendersPendingReviewsWithCandidates() {
         Mockito.when(inboxService.listPending()).thenReturn(List.of(
                 new ReviewView(1L, "Ivan Ivanov", "Test Team",
                         List.of(new CandidateView(10L, "Ivan Ivanov", new BigDecimal("0.9000"))))));
 
         given().when().get("/inbox")
                 .then().statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("[0].id", equalTo(1))
-                .body("[0].rawName", equalTo("Ivan Ivanov"))
-                .body("[0].teamName", equalTo("Test Team"))
-                .body("[0].candidates[0].playerId", equalTo(10));
+                .contentType(ContentType.HTML)
+                .body(containsString("Test Team"))
+                .body(containsString("Ivan Ivanov"))
+                .body(containsString("hx-post=\"/inbox/1/resolve\""))
+                .body(containsString("hx-post=\"/inbox/1/confirm-new\""));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void adminListShowsEmptyStateWhenNothingPending() {
+        Mockito.when(inboxService.listPending()).thenReturn(List.of());
+
+        given().when().get("/inbox")
+                .then().statusCode(200)
+                .body(containsString("Няма чакащи прегледи"));
+    }
+
+    @Test
+    void badgeUnauthenticatedRedirectsToLogin() {
+        given().redirects().follow(false)
+                .when().get("/inbox/badge")
+                .then().statusCode(302);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void badgeShowsCountForAdminWhenReviewsPending() {
+        Mockito.when(inboxService.countPending()).thenReturn(3L);
+
+        given().when().get("/inbox/badge")
+                .then().statusCode(200)
+                .body(containsString("/inbox"))
+                .body(containsString("3"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void badgeHidesLinkForAdminWhenNothingPending() {
+        Mockito.when(inboxService.countPending()).thenReturn(0L);
+
+        given().when().get("/inbox/badge")
+                .then().statusCode(200)
+                .body(not(containsString("<a")));
+    }
+
+    @Test
+    @TestSecurity(user = "user", roles = {"USER"})
+    void badgeIsEmptyForNonAdmin() {
+        given().when().get("/inbox/badge")
+                .then().statusCode(200)
+                .body(not(containsString("<a")));
+
+        Mockito.verify(inboxService, Mockito.never()).countPending();
     }
 
     @Test
@@ -74,17 +123,17 @@ class InboxResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void adminResolveReturnsResolvedPlayer() {
+    void adminResolveReturnsUpdatedListFragment() {
         Mockito.when(inboxService.resolveReview(1L, 5L)).thenReturn(player(5L, "Petar Petrov"));
+        Mockito.when(inboxService.listPending()).thenReturn(List.of());
 
         given().contentType(ContentType.URLENC)
                 .formParam("playerId", 5L)
                 .when().post("/inbox/1/resolve")
                 .then().statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("reviewId", equalTo(1))
-                .body("playerId", equalTo(5))
-                .body("playerNames", equalTo("Petar Petrov"));
+                .contentType(ContentType.HTML)
+                .body(containsString("inbox-list"))
+                .body(containsString("Няма чакащи прегледи"));
 
         Mockito.verify(inboxService).resolveReview(1L, 5L);
     }
@@ -121,15 +170,15 @@ class InboxResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void adminConfirmNewReturnsCreatedPlayer() {
+    void adminConfirmNewReturnsUpdatedListFragment() {
         Mockito.when(inboxService.confirmNewPlayer(1L)).thenReturn(player(7L, "Nikolay Nikolov"));
+        Mockito.when(inboxService.listPending()).thenReturn(List.of());
 
         given().when().post("/inbox/1/confirm-new")
                 .then().statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("reviewId", equalTo(1))
-                .body("playerId", equalTo(7))
-                .body("playerNames", equalTo("Nikolay Nikolov"));
+                .contentType(ContentType.HTML)
+                .body(containsString("inbox-list"))
+                .body(containsString("Няма чакащи прегледи"));
 
         Mockito.verify(inboxService).confirmNewPlayer(1L);
     }

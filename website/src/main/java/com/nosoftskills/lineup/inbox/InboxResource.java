@@ -1,7 +1,10 @@
 package com.nosoftskills.lineup.inbox;
 
 import com.nosoftskills.lineup.inbox.AmbiguityInboxService.ReviewView;
-import com.nosoftskills.lineup.model.Player;
+import com.nosoftskills.lineup.security.CurrentUser;
+import io.quarkus.qute.CheckedTemplate;
+import io.quarkus.qute.TemplateInstance;
+import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -15,42 +18,62 @@ import org.jboss.resteasy.reactive.RestForm;
 import java.util.List;
 
 /**
- * Admin-only JSON backend for the ambiguity inbox (LT-009.02). Every endpoint requires ADMIN --
- * unlike the public-read/admin-write resources elsewhere, this whole screen is admin-only per the
- * LT-009 epic. The LT-009.03 UI is the intended caller.
+ * Admin-only ambiguity inbox screen (LT-009.03), built on top of {@link AmbiguityInboxService}
+ * (LT-009.02). Lists pending reviews and lets an admin resolve one -- picking a ranked candidate
+ * or confirming a brand-new player -- via HTMX, swapping the whole list (mirroring the
+ * whole-panel swap idiom used by MatchExtractionResource's wizard) rather than a single row.
  */
 @Path("/inbox")
-@RolesAllowed("ADMIN")
 public class InboxResource {
 
     @Inject
     AmbiguityInboxService inboxService;
 
-    public record ResolvedView(Long reviewId, Long playerId, String playerNames) {
-        static ResolvedView of(Long reviewId, Player player) {
-            return new ResolvedView(reviewId, player.id, player.names);
-        }
+    @Inject
+    CurrentUser currentUser;
+
+    @CheckedTemplate
+    public static class Templates {
+        public static native TemplateInstance page(String username, List<ReviewView> reviews);
+        public static native TemplateInstance list(List<ReviewView> reviews);
+        public static native TemplateInstance badge(long pendingCount);
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<ReviewView> list() {
-        return inboxService.listPending();
+    @RolesAllowed("ADMIN")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance showInbox() {
+        return Templates.page(currentUser.username(), inboxService.listPending());
+    }
+
+    // Not ADMIN-restricted: appNav shows this to every logged-in user (matching how the rest of
+    // the nav's admin-oriented links are visible to any authenticated user and rely on the target
+    // resource's own @RolesAllowed for enforcement), so a non-admin's automatic hx-trigger="load"
+    // fetch must succeed with an empty badge rather than 403.
+    @GET
+    @Path("/badge")
+    @Authenticated
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance badge() {
+        long pendingCount = currentUser.isAdmin() ? inboxService.countPending() : 0;
+        return Templates.badge(pendingCount);
     }
 
     @POST
     @Path("/{id}/resolve")
-    @Produces(MediaType.APPLICATION_JSON)
-    public ResolvedView resolve(@PathParam("id") Long id, @RestForm Long playerId) {
-        Player resolved = inboxService.resolveReview(id, playerId);
-        return ResolvedView.of(id, resolved);
+    @RolesAllowed("ADMIN")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance resolve(@PathParam("id") Long id, @RestForm Long playerId) {
+        inboxService.resolveReview(id, playerId);
+        return Templates.list(inboxService.listPending());
     }
 
     @POST
     @Path("/{id}/confirm-new")
-    @Produces(MediaType.APPLICATION_JSON)
-    public ResolvedView confirmNew(@PathParam("id") Long id) {
-        Player resolved = inboxService.confirmNewPlayer(id);
-        return ResolvedView.of(id, resolved);
+    @RolesAllowed("ADMIN")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance confirmNew(@PathParam("id") Long id) {
+        inboxService.confirmNewPlayer(id);
+        return Templates.list(inboxService.listPending());
     }
 }
