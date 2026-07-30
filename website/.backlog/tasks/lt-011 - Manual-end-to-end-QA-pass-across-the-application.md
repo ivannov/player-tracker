@@ -4,6 +4,7 @@ title: Manual end-to-end QA pass across the application
 status: To Do
 assignee: []
 created_date: '2026-07-30 13:23'
+updated_date: '2026-07-30 13:24'
 labels:
   - qa
   - testing
@@ -20,5 +21,6 @@ All planned features (LT-001 through LT-010) are now implemented. Before conside
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [ ] #1 Test plan document exists and is reviewed
+- [ ] #2 Test plan has been executed and results (pass/fail, bugs found) are recorded
 <!-- DOD:END -->
