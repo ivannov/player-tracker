@@ -4,6 +4,7 @@ title: Daily scheduled extraction job + admin ambiguity inbox
 status: To Do
 assignee: []
 created_date: '2026-07-11 15:44'
+updated_date: '2026-07-30 09:41'
 labels:
   - scheduler
   - htmx
@@ -29,3 +30,9 @@ This is a stub epic -- break it down into subtasks (scheduled job, inbox backend
 <!-- DOD:BEGIN -->
 - [ ] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+All three subtasks complete: LT-009.01 (scheduled daily extraction job), LT-009.02 (ambiguity inbox backend), LT-009.03 (ambiguity inbox UI). Epic done.
+<!-- SECTION:NOTES:END -->
