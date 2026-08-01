@@ -1,11 +1,12 @@
 ---
 id: LT-017
 title: >-
-  Substitution minute validation relies entirely on DB CHECK constraint -- raw
-  500 on violation
+  Minute validation relies entirely on DB CHECK constraints (substitutions +
+  events) -- raw 500 on violation
 status: To Do
 assignee: []
 created_date: '2026-08-01 04:20'
+updated_date: '2026-08-01 04:22'
 labels:
   - bug
   - matches
@@ -25,3 +26,9 @@ MT-7.6 manual test execution (LT-011.02) confirmed: MatchResource.updateSubstitu
 - [ ] #1 Invalid substitution minutes (out<in, >130, negative) return a friendly error, not a raw 500
 - [ ] #2 No stack trace exposed to the client
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Also confirmed during MT-7.8: MatchResource.addEvent() (MatchResource.java:263, event.minute = parseShort(f.minute)) has the identical gap -- no range check before persist. POST .../events with minute=999 throws the same raw 500 via the match_events minute CHECK constraint. Same fix should cover both addEvent() and updateSubstitution().
+<!-- SECTION:NOTES:END -->
