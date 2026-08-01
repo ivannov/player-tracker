@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-07-31 19:46'
+updated_date: '2026-08-01 04:19'
 labels:
   - bug
   - error-handling
@@ -37,3 +38,9 @@ By contrast, MatchResource.create() (mismatched competition/season) correctly bu
 - [ ] #1 All BadRequestException(String) call sites return a response whose body actually contains the Bulgarian message
 - [ ] #2 Verified in-browser: each of the 9 affected flows shows a visible error message to the admin instead of silently doing nothing
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Also confirmed during MT-7.4: the 'add appearance' form (/matches/{id}/appearances) is a plain (non-HTMX) form POST, so a BadRequestException there doesn't just silently no-op like the HTMX cases -- the browser navigates away from the match page entirely to Chrome's generic blank 'HTTP ERROR 400' page. Same root cause (BadRequestException(String) body is empty), but a worse-looking failure mode for this specific call site since there's no page to swap the message into.
+<!-- SECTION:NOTES:END -->
