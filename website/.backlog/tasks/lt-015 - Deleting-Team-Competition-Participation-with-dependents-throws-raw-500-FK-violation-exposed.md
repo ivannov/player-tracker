@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-07-31 20:21'
+updated_date: '2026-08-01 04:32'
 labels:
   - bug
   - data-integrity
@@ -25,3 +26,9 @@ MT-3.3/MT-4.4/MT-5.5 manual test execution (LT-011.02) confirmed the known code-
 - [ ] #1 Deleting a Team/Competition/Participation with dependent rows returns a friendly error, not a raw 500
 - [ ] #2 No stack trace or internal exception detail is exposed to the client
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Also confirmed during MT-3.2: TeamResource.update() (TeamResource.java:124) has the identical gap one level deeper. Editing a team to deselect a formation type cascades Participation.delete("teamFormation.id", tf.id) before tf.delete() -- but if that participation itself has a Match referencing it (home_team_id/away_team_id FK), the delete throws the same raw ConstraintViolationException/500 ('violates foreign key constraint matches_away_team_id_fkey'), reproduced via POST /teams/{id} deselecting a formation whose participation had an associated match. So the missing-dependent-check problem isn't just on the three direct DELETE endpoints -- it also affects this indirect cascade-delete path in the team edit flow. Same fix (a dependent check, applied transitively) should cover this too.
+<!-- SECTION:NOTES:END -->
