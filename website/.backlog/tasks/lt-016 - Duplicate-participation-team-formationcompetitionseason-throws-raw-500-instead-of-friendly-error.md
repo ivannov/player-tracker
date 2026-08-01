@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-08-01 04:16'
+updated_date: '2026-08-01 04:16'
 labels:
   - bug
   - data-integrity
@@ -25,3 +26,9 @@ MT-5.2 manual test execution (LT-011.02) confirmed the known risk: Participation
 - [ ] #1 Submitting a duplicate team-formation+competition+season participation shows a friendly error, not a raw 500
 - [ ] #2 No stack trace or internal exception detail is exposed to the client
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Also confirmed during MT-5.4: an oversized 'season' value (300 chars, VARCHAR(9) column) on the same create() path throws org.hibernate.exception.DataException 'value too long for type character varying(9)' as a raw 500, same missing-validation-before-persist gap as the duplicate-constraint case. A single length/format check (or try/catch around persist) covering both the unique-constraint and length-constraint cases would close both findings.
+<!-- SECTION:NOTES:END -->
