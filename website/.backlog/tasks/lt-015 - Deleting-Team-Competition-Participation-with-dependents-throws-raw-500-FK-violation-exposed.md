@@ -23,8 +23,8 @@ MT-3.3/MT-4.4/MT-5.5 manual test execution (LT-011.02) confirmed the known code-
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Deleting a Team/Competition/Participation with dependent rows returns a friendly error, not a raw 500
-- [ ] #2 No stack trace or internal exception detail is exposed to the client
+- [x] #1 Deleting a Team/Competition/Participation with dependent rows returns a friendly error, not a raw 500
+- [x] #2 No stack trace or internal exception detail is exposed to the client
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -32,3 +32,9 @@ MT-3.3/MT-4.4/MT-5.5 manual test execution (LT-011.02) confirmed the known code-
 <!-- SECTION:NOTES:BEGIN -->
 MT-5.5 also empirically confirmed (previously only inferred by code pattern): DELETE /participations/{id} for a participation referenced by a Match throws the same raw 500 (FK violation), verified via curl.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added dependent-row guards to Team/Competition/Participation delete() so FK violations return a friendly 409 with a Bulgarian message instead of a raw 500 stack trace. Also added a small shared htmx:responseError toast in layout.html so admins actually see the message (delete previously relied on htmx's default 204-skip-swap, which meant errors were silently swallowed). Verified with new conflict tests in TeamResourceTest/CompetitionResourceTest/ParticipationResourceTest plus full test suite.
+<!-- SECTION:FINAL_SUMMARY:END -->
