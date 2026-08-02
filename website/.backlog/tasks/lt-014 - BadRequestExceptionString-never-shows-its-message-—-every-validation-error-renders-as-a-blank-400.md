@@ -3,10 +3,10 @@ id: LT-014
 title: >-
   BadRequestException(String) never shows its message — every validation error
   renders as a blank 400
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-31 19:46'
-updated_date: '2026-08-01 04:19'
+updated_date: '2026-08-02 13:35'
 labels:
   - bug
   - error-handling
@@ -35,9 +35,11 @@ By contrast, MatchResource.create() (mismatched competition/season) correctly bu
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 All BadRequestException(String) call sites return a response whose body actually contains the Bulgarian message
-- [ ] #2 Verified in-browser: each of the 9 affected flows shows a visible error message to the admin instead of silently doing nothing
+- [x] #1 All BadRequestException(String) call sites return a response whose body actually contains the Bulgarian message
+- [x] #2 Verified in-browser: each of the 9 affected flows shows a visible error message to the admin instead of silently doing nothing
 <!-- AC:END -->
+
+
 
 ## Implementation Notes
 
