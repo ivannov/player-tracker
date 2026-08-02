@@ -44,6 +44,10 @@ public class AmbiguityReview extends TrackerEntity {
     @JoinColumn(name = "resolved_player_id")
     public Player resolvedPlayer;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_team_id")
+    public Team resolvedTeam;
+
     @Column(name = "resolved_at")
     public LocalDateTime resolvedAt;
 

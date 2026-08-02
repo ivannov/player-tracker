@@ -10,6 +10,7 @@ import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Player;
 import com.nosoftskills.lineup.model.PlayerAlias;
 import com.nosoftskills.lineup.model.Team;
+import com.nosoftskills.lineup.model.TeamAlias;
 import com.nosoftskills.lineup.testsupport.TeamFormationFixtures;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
@@ -41,6 +42,8 @@ class AmbiguityInboxServiceTest {
     private Long teamFormationId;
     private Long competitionId;
     private final List<Long> playerIds = new ArrayList<>();
+    private final List<Long> extraTeamIds = new ArrayList<>();
+    private final List<Long> teamReviewIds = new ArrayList<>();
 
     @BeforeEach
     void setup() {
@@ -57,6 +60,15 @@ class AmbiguityInboxServiceTest {
     void cleanup() {
         QuarkusTransaction.requiringNew().run(() -> {
             AmbiguityCandidate.delete("player.id in ?1", playerIds);
+            for (Long reviewId : teamReviewIds) {
+                AmbiguityReview.deleteById(reviewId);
+            }
+            teamReviewIds.clear();
+            TeamAlias.delete("rawName like ?1", "LT18 Test%");
+            for (Long extraTeamId : extraTeamIds) {
+                Team.deleteById(extraTeamId);
+            }
+            extraTeamIds.clear();
             AmbiguityReview.delete("team.id", teamId);
             PlayerAlias.delete("team.id", teamId);
             for (Long playerId : playerIds) {
@@ -74,6 +86,31 @@ class AmbiguityInboxServiceTest {
             player.persist();
             playerIds.add(player.id);
             return player.id;
+        });
+    }
+
+    private Long createTeam(String name) {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            Team team = new Team();
+            team.name = name;
+            team.location = "Test City";
+            team.persist();
+            extraTeamIds.add(team.id);
+            return team.id;
+        });
+    }
+
+    private Long queueTeamReview(String rawName, Long mappedTeamId) {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            AmbiguityReview review = new AmbiguityReview();
+            review.type = AmbiguityReviewType.TEAM;
+            review.rawName = rawName;
+            review.team = Team.findById(mappedTeamId);
+            review.source = ExternalRefSource.BFU_TOURNAMENTS;
+            review.status = AmbiguityReviewStatus.PENDING;
+            review.persist();
+            teamReviewIds.add(review.id);
+            return review.id;
         });
     }
 
@@ -193,5 +230,110 @@ class AmbiguityInboxServiceTest {
         Long reviewId = queueReview("Stefan Stefanov", List.of(playerId));
 
         assertThrows(NotFoundException.class, () -> inboxService.resolveReview(reviewId, 999_999_999L));
+    }
+
+    @Test
+    void resolveTeamReviewPicksTeamWritesAliasAndMarksResolved() {
+        Long teamAId = createTeam("LT18 Test Team A");
+        Long teamBId = createTeam("LT18 Test Team B");
+        Long reviewId = queueTeamReview("LT18 Test Raw Name", teamAId);
+
+        Team resolved = inboxService.resolveTeamReview(reviewId, teamBId);
+
+        assertEquals(teamBId, resolved.id);
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            AmbiguityReview review = AmbiguityReview.findById(reviewId);
+            assertEquals(AmbiguityReviewStatus.RESOLVED, review.status);
+            assertEquals(teamBId, review.resolvedTeam.id);
+            assertNotNull(review.resolvedAt);
+            assertEquals("admin", review.resolvedBy);
+        });
+
+        long aliasCount = QuarkusTransaction.requiringNew().call(() ->
+                TeamAlias.count("source = ?1 and rawName = ?2 and team.id = ?3",
+                        ExternalRefSource.BFU_TOURNAMENTS, "LT18 Test Raw Name", teamBId));
+        assertEquals(1, aliasCount);
+    }
+
+    @Test
+    void resolveTeamReviewRepointsExistingAliasInsteadOfDuplicating() {
+        Long teamAId = createTeam("LT18 Test Team A2");
+        Long teamBId = createTeam("LT18 Test Team B2");
+        QuarkusTransaction.requiringNew().run(() -> {
+            TeamAlias alias = new TeamAlias();
+            alias.source = ExternalRefSource.BFU_TOURNAMENTS;
+            alias.rawName = "LT18 Test Raw Name 2";
+            alias.team = Team.findById(teamAId);
+            alias.persist();
+        });
+        Long reviewId = queueTeamReview("LT18 Test Raw Name 2", teamAId);
+
+        inboxService.resolveTeamReview(reviewId, teamBId);
+
+        long totalAliasCount = QuarkusTransaction.requiringNew().call(() -> TeamAlias.count(
+                "source = ?1 and rawName = ?2", ExternalRefSource.BFU_TOURNAMENTS, "LT18 Test Raw Name 2"));
+        assertEquals(1, totalAliasCount, "must repoint the existing alias, not duplicate it");
+
+        long aliasNowOnB = QuarkusTransaction.requiringNew().call(() -> TeamAlias.count(
+                "source = ?1 and rawName = ?2 and team.id = ?3",
+                ExternalRefSource.BFU_TOURNAMENTS, "LT18 Test Raw Name 2", teamBId));
+        assertEquals(1, aliasNowOnB);
+    }
+
+    @Test
+    void resolveTeamReviewOnPlayerReviewThrowsBadRequestAndCreatesNoPlayer() {
+        Long playerId = createPlayer("LT18 Should Not Resolve");
+        Long reviewId = queueReview("LT18 Should Not Resolve", List.of(playerId));
+        Long teamAId = createTeam("LT18 Test Team C");
+        long playersBefore = Player.count();
+
+        assertThrows(BadRequestException.class, () -> inboxService.resolveTeamReview(reviewId, teamAId));
+        assertEquals(playersBefore, Player.count());
+    }
+
+    @Test
+    void resolveReviewOnTeamReviewThrowsBadRequest() {
+        Long teamAId = createTeam("LT18 Test Team D");
+        Long reviewId = queueTeamReview("LT18 Test Raw Name D", teamAId);
+
+        assertThrows(BadRequestException.class, () -> inboxService.resolveReview(reviewId, teamAId));
+    }
+
+    @Test
+    void confirmNewPlayerOnTeamReviewThrowsBadRequestAndCreatesNoPlayer() {
+        Long teamAId = createTeam("LT18 Test Team E");
+        Long reviewId = queueTeamReview("LT18 Test Raw Name E", teamAId);
+        long playersBefore = Player.count();
+
+        assertThrows(BadRequestException.class, () -> inboxService.confirmNewPlayer(reviewId));
+        assertEquals(playersBefore, Player.count());
+    }
+
+    @Test
+    void resolveTeamReviewUnknownTeamThrowsNotFound() {
+        Long teamAId = createTeam("LT18 Test Team F");
+        Long reviewId = queueTeamReview("LT18 Test Raw Name F", teamAId);
+
+        assertThrows(NotFoundException.class, () -> inboxService.resolveTeamReview(reviewId, 999_999_999L));
+    }
+
+    @Test
+    void resolveTeamReviewUnknownReviewThrowsNotFound() {
+        Long teamAId = createTeam("LT18 Test Team G");
+
+        assertThrows(NotFoundException.class, () -> inboxService.resolveTeamReview(999_999_999L, teamAId));
+    }
+
+    @Test
+    void listPendingMarksTeamReviewsAsTeamReview() {
+        Long teamAId = createTeam("LT18 Test Team H");
+        Long reviewId = queueTeamReview("LT18 Test Raw Name H", teamAId);
+
+        List<ReviewView> pending = inboxService.listPending();
+
+        ReviewView view = pending.stream().filter(r -> r.id().equals(reviewId)).findFirst().orElseThrow();
+        assertTrue(view.teamReview());
+        assertTrue(view.candidates().isEmpty());
     }
 }

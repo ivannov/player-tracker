@@ -151,6 +151,7 @@ CREATE TABLE ambiguity_reviews (
     source              VARCHAR(20)  NOT NULL,
     status              VARCHAR(10)  NOT NULL DEFAULT 'PENDING',
     resolved_player_id  BIGINT       REFERENCES players(id),
+    resolved_team_id    BIGINT       REFERENCES teams(id),
     resolved_at         TIMESTAMP,
     resolved_by         VARCHAR(255)
 );

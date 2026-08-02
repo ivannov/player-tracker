@@ -1,11 +1,14 @@
 package com.nosoftskills.lineup.inbox;
 
 import com.nosoftskills.lineup.matching.PlayerMatchingService;
+import com.nosoftskills.lineup.matching.TeamResolutionService;
 import com.nosoftskills.lineup.model.AmbiguityCandidate;
 import com.nosoftskills.lineup.model.AmbiguityReview;
 import com.nosoftskills.lineup.model.AmbiguityReviewStatus;
+import com.nosoftskills.lineup.model.AmbiguityReviewType;
 import com.nosoftskills.lineup.model.ExternalRefSource;
 import com.nosoftskills.lineup.model.Player;
+import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +27,8 @@ import java.util.stream.Collectors;
  * with their ranked {@link AmbiguityCandidate} players, and resolves them either by picking an
  * existing player or by confirming a brand-new one -- both write a {@link com.nosoftskills.lineup.model.PlayerAlias}
  * back via {@link PlayerMatchingService#writeAlias} exactly like an auto-resolved match would.
+ * TEAM-type reviews (LT-018) go through a separate {@link #resolveTeamReview} path instead --
+ * they never have candidates and must never resolve into a {@link Player}.
  */
 @ApplicationScoped
 public class AmbiguityInboxService {
@@ -32,9 +37,12 @@ public class AmbiguityInboxService {
     PlayerMatchingService playerMatchingService;
 
     @Inject
+    TeamResolutionService teamResolutionService;
+
+    @Inject
     CurrentUser currentUser;
 
-    public record ReviewView(Long id, String rawName, String teamName, List<CandidateView> candidates) {
+    public record ReviewView(Long id, String rawName, String teamName, boolean teamReview, List<CandidateView> candidates) {
     }
 
     public record CandidateView(Long playerId, String playerNames, java.math.BigDecimal score) {
@@ -71,6 +79,7 @@ public class AmbiguityInboxService {
     @Transactional
     public Player resolveReview(Long reviewId, Long chosenPlayerId) {
         AmbiguityReview review = requirePendingReview(reviewId);
+        requireType(review, AmbiguityReviewType.PLAYER);
         Player player = Player.findById(chosenPlayerId);
         if (player == null) {
             throw new NotFoundException("Player not found: " + chosenPlayerId);
@@ -89,6 +98,7 @@ public class AmbiguityInboxService {
     public Player confirmNewPlayer(Long reviewId) {
         ReviewSnapshot snapshot = QuarkusTransaction.requiringNew().call(() -> {
             AmbiguityReview review = requirePendingReview(reviewId);
+            requireType(review, AmbiguityReviewType.PLAYER);
             return new ReviewSnapshot(review.rawName, review.team.id, review.source);
         });
 
@@ -110,6 +120,25 @@ public class AmbiguityInboxService {
         return resolved;
     }
 
+    // Picks an existing Team for a TEAM-type review and repoints the TeamAlias to it -- the
+    // correct resolution path this type of review was always missing (LT-018). Unlike the player
+    // flow, there's no ranked-candidates step: the admin picks from the full team list, since
+    // TeamResolutionService never computes fuzzy team candidates the way PlayerMatchingService
+    // does for players.
+    @Transactional
+    public Team resolveTeamReview(Long reviewId, Long chosenTeamId) {
+        AmbiguityReview review = requirePendingReview(reviewId);
+        requireType(review, AmbiguityReviewType.TEAM);
+        Team team = Team.findById(chosenTeamId);
+        if (team == null) {
+            throw new NotFoundException("Team not found: " + chosenTeamId);
+        }
+
+        Team resolved = teamResolutionService.resolveAlias(review.source, review.rawName, team);
+        markResolvedTeam(review, resolved);
+        return resolved;
+    }
+
     private record ReviewSnapshot(String rawName, Long teamId, ExternalRefSource source) {
     }
 
@@ -124,6 +153,15 @@ public class AmbiguityInboxService {
         return review;
     }
 
+    // Defends the exact bug LT-018 fixed: a PLAYER-only action call site reached for a TEAM
+    // review (or vice versa) must fail loudly here even if the UI is ever wired up wrong again,
+    // rather than silently corrupting data (e.g. creating a bogus Player for a team name).
+    private void requireType(AmbiguityReview review, AmbiguityReviewType expected) {
+        if (review.type != expected) {
+            throw new BadRequestException("Този преглед е от друг тип и не може да бъде разрешен по този начин.");
+        }
+    }
+
     private void markResolved(AmbiguityReview review, Player resolved) {
         review.status = AmbiguityReviewStatus.RESOLVED;
         review.resolvedPlayer = resolved;
@@ -131,8 +169,16 @@ public class AmbiguityInboxService {
         review.resolvedBy = currentUser.username();
     }
 
+    private void markResolvedTeam(AmbiguityReview review, Team resolved) {
+        review.status = AmbiguityReviewStatus.RESOLVED;
+        review.resolvedTeam = resolved;
+        review.resolvedAt = LocalDateTime.now();
+        review.resolvedBy = currentUser.username();
+    }
+
     private ReviewView toView(AmbiguityReview review, List<AmbiguityCandidate> candidates) {
         return new ReviewView(review.id, review.rawName, review.team.name,
+                review.type == AmbiguityReviewType.TEAM,
                 candidates.stream()
                         .map(c -> new CandidateView(c.player.id, c.player.names, c.score))
                         .toList());

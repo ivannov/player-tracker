@@ -56,6 +56,24 @@ public class TeamResolutionService {
         }
     }
 
+    // Used when an admin resolves a TEAM AmbiguityReview from the inbox (LT-018): unlike
+    // recordAlias, this deliberately DOES repoint an existing alias -- that's the whole point of
+    // the review, an admin overriding a stale/wrong mapping on purpose.
+    @Transactional
+    public Team resolveAlias(ExternalRefSource source, String rawTeamName, Team team) {
+        TeamAlias alias = TeamAlias.find("source = ?1 and rawName = ?2", source, rawTeamName).firstResult();
+        if (alias == null) {
+            alias = new TeamAlias();
+            alias.source = source;
+            alias.rawName = rawTeamName;
+            alias.team = team;
+            alias.persist();
+        } else {
+            alias.team = team;
+        }
+        return team;
+    }
+
     private void queueAmbiguityReview(ExternalRefSource source, String rawTeamName, Team currentlyMappedTeam) {
         boolean alreadyQueued = AmbiguityReview.count(
                 "type = ?1 and rawName = ?2 and status = ?3",

@@ -1,7 +1,9 @@
 package com.nosoftskills.lineup.inbox;
 
 import com.nosoftskills.lineup.inbox.AmbiguityInboxService.ReviewView;
+import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.security.CurrentUser;
+import io.quarkus.panache.common.Sort;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.Authenticated;
@@ -21,8 +23,9 @@ import java.util.List;
 /**
  * Admin-only ambiguity inbox screen (LT-009.03), built on top of {@link AmbiguityInboxService}
  * (LT-009.02). Lists pending reviews and lets an admin resolve one -- picking a ranked candidate
- * or confirming a brand-new player -- via HTMX, swapping the whole list (mirroring the
- * whole-panel swap idiom used by MatchExtractionResource's wizard) rather than a single row.
+ * or confirming a brand-new player for PLAYER-type reviews, or picking an existing team for
+ * TEAM-type reviews (LT-018) -- via HTMX, swapping the whole list (mirroring the whole-panel
+ * swap idiom used by MatchExtractionResource's wizard) rather than a single row.
  */
 @Path("/inbox")
 public class InboxResource {
@@ -35,8 +38,8 @@ public class InboxResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance page(String username, List<ReviewView> reviews);
-        public static native TemplateInstance list(List<ReviewView> reviews, String error);
+        public static native TemplateInstance page(String username, List<ReviewView> reviews, List<Team> teams);
+        public static native TemplateInstance list(List<ReviewView> reviews, String error, List<Team> teams);
         public static native TemplateInstance badge(long pendingCount);
     }
 
@@ -44,7 +47,7 @@ public class InboxResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showInbox() {
-        return Templates.page(currentUser.username(), inboxService.listPending());
+        return Templates.page(currentUser.username(), inboxService.listPending(), Team.listAll(Sort.by("name")));
     }
 
     // Not ADMIN-restricted: appNav shows this to every logged-in user (matching how the rest of
@@ -71,7 +74,7 @@ public class InboxResource {
         } catch (BadRequestException e) {
             error = e.getMessage();
         }
-        return Templates.list(inboxService.listPending(), error);
+        return Templates.list(inboxService.listPending(), error, Team.listAll(Sort.by("name")));
     }
 
     @POST
@@ -85,6 +88,20 @@ public class InboxResource {
         } catch (BadRequestException e) {
             error = e.getMessage();
         }
-        return Templates.list(inboxService.listPending(), error);
+        return Templates.list(inboxService.listPending(), error, Team.listAll(Sort.by("name")));
+    }
+
+    @POST
+    @Path("/{id}/resolve-team")
+    @RolesAllowed("ADMIN")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance resolveTeam(@PathParam("id") Long id, @RestForm Long teamId) {
+        String error = null;
+        try {
+            inboxService.resolveTeamReview(id, teamId);
+        } catch (BadRequestException e) {
+            error = e.getMessage();
+        }
+        return Templates.list(inboxService.listPending(), error, Team.listAll(Sort.by("name")));
     }
 }

@@ -19,6 +19,21 @@
                 <td>{review.teamName}</td>
                 <td>{review.rawName}</td>
                 <td>
+                    {#if review.teamReview}
+                    <small style="display:block; color:var(--pico-muted-color); margin-bottom:0.35rem;">В момента свързано с: {review.teamName}</small>
+                    <form hx-post="/inbox/{review.id}/resolve-team" hx-target="#inbox-list" hx-swap="outerHTML" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin:0;">
+                        <select name="teamId" required>
+                            <option value="" selected disabled>Изберете отбор…</option>
+                            {#for t in teams}
+                            <option value="{t.id}">{t.name} ({t.location})</option>
+                            {/for}
+                        </select>
+                        <button type="submit" class="outline">Свържи с отбор</button>
+                    </form>
+                    <small style="display:block; margin-top:0.35rem;">
+                        Няма подходящ отбор в списъка? <a href="/teams/new" target="_blank" rel="noopener">Добавете нов отбор</a> и презаредете страницата, за да се появи тук.
+                    </small>
+                    {#else}
                     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
                         {#for candidate in review.candidates}
                         <form hx-post="/inbox/{review.id}/resolve" hx-target="#inbox-list" hx-swap="outerHTML" style="margin:0;">
@@ -30,6 +45,7 @@
                             <button type="submit" class="secondary">+ Нов играч: {review.rawName}</button>
                         </form>
                     </div>
+                    {/if}
                 </td>
             </tr>
             {/for}
