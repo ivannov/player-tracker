@@ -3,10 +3,10 @@ id: LT-018
 title: >-
   TEAM-type ambiguity reviews have no way to resolve the team conflict -- only a
   wrong '+ Нов играч' that creates a bogus Player
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-08-01 04:24'
-updated_date: '2026-08-01 04:25'
+updated_date: '2026-08-02 15:21'
 labels:
   - bug
   - data-integrity
@@ -28,6 +28,12 @@ Needs either: (a) a TEAM-specific resolution UI (list candidate Teams, or '+ Н�
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 TEAM-type ambiguity reviews have a correct resolution path that does not create a Player
-- [ ] #2 The current '+ Нов играч' action is no longer reachable for TEAM-type reviews unless it is the correct action
+- [x] #1 TEAM-type ambiguity reviews have a correct resolution path that does not create a Player
+- [x] #2 The current '+ Нов играч' action is no longer reachable for TEAM-type reviews unless it is the correct action
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added a real TEAM-type resolution path instead of the dangerous '+ Нов играч' shortcut: AmbiguityReview gained a resolved_team_id column; AmbiguityInboxService.resolveTeamReview() lets an admin pick an existing Team from a dropdown, which repoints the TeamAlias via a new TeamResolutionService.resolveAlias() and marks the review resolved without ever touching the players table. The inbox UI now branches on review type -- TEAM-type rows show a team picker (plus a link to create a missing team via the existing /teams/new form) instead of the player-candidate buttons, so '+ Нов играч' is no longer reachable for TEAM reviews at all. Added defense-in-depth type guards in resolveReview/confirmNewPlayer/resolveTeamReview so a PLAYER-only or TEAM-only action can never resolve the wrong review type even if the UI is mis-wired again. Verified with new tests in AmbiguityInboxServiceTest, InboxResourceTest, and existing TeamResolutionServiceTest coverage of resolveAlias(); full suite passes.
+<!-- SECTION:FINAL_SUMMARY:END -->
