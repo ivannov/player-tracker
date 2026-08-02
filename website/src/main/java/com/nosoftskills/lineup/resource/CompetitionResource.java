@@ -2,6 +2,7 @@ package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.CompetitionExtractionConfig;
+import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
@@ -103,6 +104,12 @@ public class CompetitionResource {
     public Response delete(@PathParam("id") Long id) {
         Competition c = Competition.findById(id);
         if (c == null) throw new NotFoundException();
+        if (Participation.count("competition.id", id) > 0) {
+            return Response.status(Response.Status.CONFLICT)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Състезанието не може да бъде изтрито, докато има свързани участия.")
+                    .build();
+        }
         c.delete();
         return Response.noContent().build();
     }

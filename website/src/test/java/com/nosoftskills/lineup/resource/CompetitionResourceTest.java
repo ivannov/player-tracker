@@ -2,6 +2,10 @@ package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.CompetitionExtractionConfig;
+import com.nosoftskills.lineup.model.FormationType;
+import com.nosoftskills.lineup.model.Participation;
+import com.nosoftskills.lineup.model.TeamFormation;
+import com.nosoftskills.lineup.testsupport.TeamFormationFixtures;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -202,6 +206,35 @@ class CompetitionResourceTest {
                 .when().delete("/competitions/" + id)
                 .then().statusCode(204);
         // already deleted, no cleanup needed
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void deleteWithParticipationReturnsConflictNotServerError() {
+        TeamFormationFixtures.Ids ids = QuarkusTransaction.requiringNew().call(() ->
+                TeamFormationFixtures.create("Competition Conflict Team", "Test City",
+                        FormationType.U15, "Competition With Participation"));
+
+        Long participationId = QuarkusTransaction.requiringNew().call(() -> {
+            Participation p = new Participation();
+            p.teamFormation = TeamFormation.findById(ids.teamFormationId());
+            p.competition = Competition.findById(ids.competitionId());
+            p.season = "2024/2025";
+            p.persist();
+            return p.id;
+        });
+
+        try {
+            given().redirects().follow(false)
+                    .when().delete("/competitions/" + ids.competitionId())
+                    .then().statusCode(409)
+                    .body(not(containsString("Exception")), not(containsString("nosoftskills")));
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> {
+                Participation.deleteById(participationId);
+                TeamFormationFixtures.delete(ids);
+            });
+        }
     }
 
     private Long insertCompetition(String name) {

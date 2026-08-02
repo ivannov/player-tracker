@@ -2,7 +2,9 @@ package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.FormationType;
+import com.nosoftskills.lineup.model.Match;
 import com.nosoftskills.lineup.model.Participation;
+import com.nosoftskills.lineup.model.PlayerAppearance;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.security.CurrentUser;
@@ -173,6 +175,14 @@ public class ParticipationResource {
     public Response delete(@PathParam("id") Long id) {
         Participation p = Participation.findById(id);
         if (p == null) throw new NotFoundException();
+        boolean hasMatches = Match.count("homeTeam.id = ?1 or awayTeam.id = ?1", id) > 0;
+        boolean hasAppearances = PlayerAppearance.count("participation.id", id) > 0;
+        if (hasMatches || hasAppearances) {
+            return Response.status(Response.Status.CONFLICT)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Участието не може да бъде изтрито, докато има свързани мачове или състави.")
+                    .build();
+        }
         p.delete();
         return Response.noContent().build();
     }

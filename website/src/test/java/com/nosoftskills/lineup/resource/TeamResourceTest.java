@@ -1,5 +1,6 @@
 package com.nosoftskills.lineup.resource;
 
+import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -157,6 +158,23 @@ class TeamResourceTest {
         given().redirects().follow(false)
                 .when().delete("/teams/" + id)
                 .then().statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void deleteWithFormationReturnsConflictNotServerError() {
+        createdId = insertTeam("Team With Formation");
+        QuarkusTransaction.requiringNew().run(() -> {
+            TeamFormation tf = new TeamFormation();
+            tf.team = Team.findById(createdId);
+            tf.type = FormationType.U15;
+            tf.persist();
+        });
+
+        given().redirects().follow(false)
+                .when().delete("/teams/" + createdId)
+                .then().statusCode(409)
+                .body(not(containsString("Exception")), not(containsString("nosoftskills")));
     }
 
     private Long insertTeam(String name) {

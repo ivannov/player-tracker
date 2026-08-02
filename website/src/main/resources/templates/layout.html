@@ -91,6 +91,20 @@
         }
         a.logout { color: var(--pico-del-color) !important; }
 
+        /* ── Error toast ──────────────────────────────────────────────────── */
+        #error-toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            max-width: 24rem;
+            padding: 0.75rem 1rem;
+            background: var(--pico-del-color);
+            color: #ffffff;
+            border-radius: var(--pico-border-radius);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+            z-index: 1000;
+        }
+
         /* ── Responsive ───────────────────────────────────────────────────── */
         .mobile-only { display: none; }
         @media (max-width: 767px) {
@@ -124,6 +138,7 @@
     </footer>
 
     <form id="logout-form" method="post" action="/app/logout" hidden></form>
+    <div id="error-toast" role="alert" hidden></div>
     <script src="https://unpkg.com/htmx.org@2/dist/htmx.min.js"></script>
     <script>
         const dropdowns = document.querySelectorAll('nav details.dropdown');
@@ -136,6 +151,14 @@
             if (!e.target.closest('nav details.dropdown')) {
                 dropdowns.forEach(d => d.open = false);
             }
+        });
+
+        const errorToast = document.getElementById('error-toast');
+        document.body.addEventListener('htmx:responseError', e => {
+            errorToast.textContent = e.detail.xhr.responseText || 'Възникна грешка.';
+            errorToast.hidden = false;
+            clearTimeout(errorToast._hideTimer);
+            errorToast._hideTimer = setTimeout(() => { errorToast.hidden = true; }, 5000);
         });
     </script>
     {#insert scripts}{/insert}

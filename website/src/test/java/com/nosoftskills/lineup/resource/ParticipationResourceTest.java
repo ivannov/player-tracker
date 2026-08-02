@@ -2,6 +2,7 @@ package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.FormationType;
+import com.nosoftskills.lineup.model.Match;
 import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.testsupport.TeamFormationFixtures;
@@ -12,6 +13,8 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -178,6 +181,34 @@ class ParticipationResourceTest {
         given().redirects().follow(false)
                 .when().delete("/participations/" + id)
                 .then().statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void deleteReferencedByMatchReturnsConflictNotServerError() {
+        Long homeId = insertParticipation("2017/2018");
+        Long awayId = insertParticipation("2016/2017");
+        Long matchId = QuarkusTransaction.requiringNew().call(() -> {
+            Match m = new Match();
+            m.homeTeam = Participation.findById(homeId);
+            m.awayTeam = Participation.findById(awayId);
+            m.date = LocalDate.now();
+            m.persist();
+            return m.id;
+        });
+
+        try {
+            given().redirects().follow(false)
+                    .when().delete("/participations/" + homeId)
+                    .then().statusCode(409)
+                    .body(not(containsString("Exception")), not(containsString("nosoftskills")));
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> Match.deleteById(matchId));
+            QuarkusTransaction.requiringNew().run(() -> {
+                Participation.deleteById(homeId);
+                Participation.deleteById(awayId);
+            });
+        }
     }
 
     private Long insertParticipation(String season) {

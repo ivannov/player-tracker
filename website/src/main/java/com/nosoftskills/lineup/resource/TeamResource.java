@@ -143,6 +143,12 @@ public class TeamResource {
     public Response delete(@PathParam("id") Long id) {
         Team t = Team.findById(id);
         if (t == null) throw new NotFoundException();
+        if (TeamFormation.count("team.id", id) > 0) {
+            return Response.status(Response.Status.CONFLICT)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Отборът не може да бъде изтрит, докато има свързани формации или участия.")
+                    .build();
+        }
         t.delete();
         return Response.noContent().build();
     }
