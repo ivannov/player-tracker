@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
@@ -403,23 +404,35 @@ class MatchResourceTest {
             return pa.id;
         });
 
-        given().redirects().follow(false)
+        String location = given().redirects().follow(false)
                 .contentType(ContentType.URLENC)
                 .formParam("participationId", awayParticipationId)
                 .formParam("playerId", existingPlayerId)
                 .when().post("/matches/" + matchId + "/appearances")
-                .then().statusCode(400);
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Играчът вече е добавен към този мач."));
     }
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
     void addAppearanceRejectsParticipationNotInMatch() {
-        given().redirects().follow(false)
+        String location = given().redirects().follow(false)
                 .contentType(ContentType.URLENC)
                 .formParam("participationId", otherParticipationId)
                 .formParam("playerId", existingPlayerId)
                 .when().post("/matches/" + matchId + "/appearances")
-                .then().statusCode(400);
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Невалиден отбор за този мач."));
     }
 
     @Test
@@ -483,6 +496,41 @@ class MatchResourceTest {
         given().when().get("/matches/" + matchId)
                 .then().statusCode(200)
                 .body(containsString("Гол"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void addEventRejectsInvalidType() {
+        createdAppearanceId = insertAppearance(existingPlayerId, homeParticipationId, true, (short) 9);
+
+        String location = given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("type", "NOT_A_REAL_TYPE")
+                .formParam("minute", "23")
+                .when().post("/matches/" + matchId + "/appearances/" + createdAppearanceId + "/events")
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Невалиден тип събитие."));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void addAppearanceRejectsMissingPlayerSelection() {
+        String location = given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("participationId", homeParticipationId)
+                .when().post("/matches/" + matchId + "/appearances")
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Изберете играч или въведете име за нов играч."));
     }
 
     @Test

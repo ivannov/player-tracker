@@ -102,6 +102,22 @@ class ParticipationImportResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void extractScraperErrorShowsErrorAndPreservesInput() throws BfuScraperException {
+        Mockito.when(scraperService.extractTeamNames(Mockito.anyString()))
+                .thenThrow(new BfuScraperException("league page unreachable"));
+
+        given().contentType(ContentType.URLENC)
+                .formParam("url", "https://bfu-tournaments.com/test")
+                .formParam("competitionId", competitionId)
+                .formParam("season", "2024/2025")
+                .when().post("/participations/import/extract")
+                .then().statusCode(200)
+                .body(containsString("Грешка при извличане: league page unreachable"))
+                .body(containsString("https://bfu-tournaments.com/test"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void formationsReturnsSelectForTeam() {
         given().contentType(ContentType.URLENC)
                 .formParam("teamId", teamId)

@@ -151,13 +151,17 @@ class InboxResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void adminResolveAlreadyResolvedReviewReturns400() {
-        Mockito.when(inboxService.resolveReview(1L, 5L)).thenThrow(new BadRequestException());
+    void adminResolveAlreadyResolvedReviewShowsErrorInList() {
+        Mockito.when(inboxService.resolveReview(1L, 5L))
+                .thenThrow(new BadRequestException("Този преглед вече е разрешен от друг администратор."));
+        Mockito.when(inboxService.listPending()).thenReturn(List.of());
 
         given().contentType(ContentType.URLENC)
                 .formParam("playerId", 5L)
                 .when().post("/inbox/1/resolve")
-                .then().statusCode(400);
+                .then().statusCode(200)
+                .contentType(ContentType.HTML)
+                .body(containsString("Този преглед вече е разрешен от друг администратор."));
     }
 
     @Test

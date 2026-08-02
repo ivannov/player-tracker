@@ -25,6 +25,7 @@ import org.mockito.Mockito;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -179,7 +180,7 @@ class MatchExtractionResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void discoverScraperErrorReturns400() throws Exception {
+    void discoverScraperErrorShowsErrorInStep1() throws Exception {
         Mockito.when(extractionService.preview(Mockito.any(ExtractionRequest.class)))
                 .thenThrow(new BfuScraperException("results page unreachable"));
 
@@ -189,7 +190,9 @@ class MatchExtractionResourceTest {
                 .formParam("season", SEASON)
                 .formParam("date", DATE)
                 .when().post("/matches/extract/discover")
-                .then().statusCode(400);
+                .then().statusCode(200)
+                .body(containsString("Грешка при извличане: results page unreachable"))
+                .body(containsString(FIXTURES_URL));
     }
 
     @Test
@@ -266,17 +269,22 @@ class MatchExtractionResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
-    void confirmScraperErrorReturns400() throws Exception {
+    void confirmScraperErrorRedirectsWithErrorMessage() throws Exception {
         Mockito.when(extractionService.confirm(Mockito.any(ExtractionRequest.class)))
                 .thenThrow(new BfuScraperException("match page unreachable"));
 
-        given().redirects().follow(false)
+        String location = given().redirects().follow(false)
                 .contentType(ContentType.URLENC)
                 .formParam("competitionId", competitionId)
                 .formParam("fixturesUrl", FIXTURES_URL)
                 .formParam("season", SEASON)
                 .formParam("date", DATE)
                 .when().post("/matches/extract/confirm")
-                .then().statusCode(400);
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/extract?error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Грешка при извличане: match page unreachable"));
     }
 }

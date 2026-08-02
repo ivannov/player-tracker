@@ -29,11 +29,15 @@
     .add-appearance { margin-top: 2rem; }
     .add-appearance .fields { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     .add-appearance input, .add-appearance select { margin: 0; width: auto; }
+    .error { color: var(--pico-del-color); }
 {/styles}
 
 {#main}
 <div class="container">
     <article>
+        {#if error}
+        <p class="error">{error}</p>
+        {/if}
         <p class="match-date">{match.date}</p>
         <div class="scoreboard">
             <div class="side">

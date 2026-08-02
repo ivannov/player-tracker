@@ -14,7 +14,6 @@ import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -29,6 +28,8 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +52,7 @@ public class MatchResource {
                 List<Competition> competitions, Long competitionId, String date);
         public static native TemplateInstance detail(String username, boolean isAdmin, Match match,
                 List<AppearanceRow> homeAppearances, List<AppearanceRow> awayAppearances,
-                List<Player> allPlayers, MatchEventType[] eventTypes);
+                List<Player> allPlayers, MatchEventType[] eventTypes, String error);
         public static native TemplateInstance form(String username, List<Participation> participations, String error);
     }
 
@@ -110,7 +111,7 @@ public class MatchResource {
     @GET
     @Path("/{id}")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance detail(@PathParam("id") Long id) {
+    public TemplateInstance detail(@PathParam("id") Long id, @QueryParam("error") String error) {
         Match match = loadMatch(id);
         if (match == null) throw new NotFoundException();
 
@@ -141,7 +142,7 @@ public class MatchResource {
         List<Player> allPlayers = currentUser.isAdmin() ? Player.listAll(Sort.by("names")) : List.of();
 
         return Templates.detail(currentUser.username(), currentUser.isAdmin(), match, home, away,
-                allPlayers, MatchEventType.values());
+                allPlayers, MatchEventType.values(), error);
     }
 
     @GET
@@ -191,7 +192,7 @@ public class MatchResource {
         Participation participation = Participation.findById(f.participationId);
         if (participation == null
                 || (!participation.id.equals(match.homeTeam.id) && !participation.id.equals(match.awayTeam.id))) {
-            throw new BadRequestException("Невалиден отбор за този мач.");
+            return Response.seeOther(errorRedirect(id, "Невалиден отбор за този мач.")).build();
         }
 
         Player player;
@@ -203,11 +204,11 @@ public class MatchResource {
             player.names = f.newPlayerName.trim();
             player.persist();
         } else {
-            throw new BadRequestException("Изберете играч или въведете име за нов играч.");
+            return Response.seeOther(errorRedirect(id, "Изберете играч или въведете име за нов играч.")).build();
         }
 
         if (PlayerAppearance.count("player.id = ?1 and match.id = ?2", player.id, id) > 0) {
-            throw new BadRequestException("Играчът вече е добавен към този мач.");
+            return Response.seeOther(errorRedirect(id, "Играчът вече е добавен към този мач.")).build();
         }
 
         PlayerAppearance pa = new PlayerAppearance();
@@ -258,7 +259,7 @@ public class MatchResource {
         try {
             type = MatchEventType.valueOf(f.type);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new BadRequestException("Невалиден тип събитие.");
+            return Response.seeOther(errorRedirect(id, "Невалиден тип събитие.")).build();
         }
 
         MatchEvent event = new MatchEvent();
@@ -292,6 +293,10 @@ public class MatchResource {
                 "JOIN FETCH p.competition " +
                 "ORDER BY p.competition.name, p.season DESC, tf.team.name"
         ).list();
+    }
+
+    private static URI errorRedirect(Long matchId, String message) {
+        return URI.create("/matches/" + matchId + "?error=" + URLEncoder.encode(message, StandardCharsets.UTF_8));
     }
 
     private static Short parseShort(String value) {

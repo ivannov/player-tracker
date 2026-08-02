@@ -11,6 +11,7 @@
     .form-actions button[type="submit"] { flex: 3; }
     .form-actions a { flex: 1; text-align: center; }
     [aria-busy="true"] { opacity: 0.7; pointer-events: none; }
+    .error { color: var(--pico-del-color); }
 {/styles}
 
 {#main}
@@ -21,6 +22,10 @@
                 <h2>Извличане на мачове</h2>
             </header>
 
+            {#if error}
+            <p class="error">{error}</p>
+            {/if}
+
             <form hx-post="/matches/extract/discover"
                   hx-target="#extraction-wizard"
                   hx-swap="outerHTML"
@@ -30,22 +35,22 @@
                 <select id="competitionId" name="competitionId" required>
                     <option value="">— изберете —</option>
                     {#for c in competitions}
-                    <option value="{c.id}">{c.name}</option>
+                    <option value="{c.id}" {#if c.id.equals(competitionId)}selected{/if}>{c.name}</option>
                     {/for}
                 </select>
 
                 <label for="fixturesUrl">URL на резултатите в БФС</label>
-                <input type="url" id="fixturesUrl" name="fixturesUrl" required
+                <input type="url" id="fixturesUrl" name="fixturesUrl" required value="{fixturesUrl ?: ''}"
                        placeholder="https://bfu-tournaments.com/leagues/...?view=past-matches">
 
                 <label for="season">Сезон</label>
                 <input type="text" id="season" name="season"
                        placeholder="2024/2025"
                        pattern="\d\d\d\d/\d\d\d\d"
-                       maxlength="9" required>
+                       maxlength="9" required value="{season ?: ''}">
 
                 <label for="date">Дата на кръга</label>
-                <input type="date" id="date" name="date" value="{today}" required>
+                <input type="date" id="date" name="date" value="{date ?: today}" required>
 
                 <div class="form-actions">
                     <button type="submit" id="discover-spinner">Открий мачове</button>

@@ -7,17 +7,19 @@ import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +35,8 @@ public class MatchExtractionResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance step1(String username, List<Competition> competitions, String today);
+        public static native TemplateInstance step1(String username, List<Competition> competitions, String today,
+                String error, Long competitionId, String fixturesUrl, String season, String date);
 
         public static native TemplateInstance step2(String username, List<ExtractionRowView> rows,
                 Long competitionId, String fixturesUrl, String season, String date,
@@ -50,8 +53,9 @@ public class MatchExtractionResource {
     @GET
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance showStep1() {
-        return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString());
+    public TemplateInstance showStep1(@QueryParam("error") String error) {
+        return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+                error, null, null, null, null);
     }
 
     @POST
@@ -62,11 +66,20 @@ public class MatchExtractionResource {
             @RestForm String season, @RestForm String date) {
         requireCompetition(competitionId);
 
+        LocalDate parsedDate;
+        try {
+            parsedDate = parseDate(date);
+        } catch (IllegalArgumentException e) {
+            return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+                    "Невалидна дата: " + date, competitionId, fixturesUrl, season, date);
+        }
+
         List<MatchExtractionRow> rows;
         try {
-            rows = extractionService.preview(new ExtractionRequest(competitionId, fixturesUrl, season, parseDate(date)));
+            rows = extractionService.preview(new ExtractionRequest(competitionId, fixturesUrl, season, parsedDate));
         } catch (BfuScraperException e) {
-            throw new BadRequestException("Грешка при извличане: " + e.getMessage());
+            return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+                    "Грешка при извличане: " + e.getMessage(), competitionId, fixturesUrl, season, date);
         }
 
         List<ExtractionRowView> rowViews = rows.stream().map(ExtractionRowView::from).toList();
@@ -119,13 +132,22 @@ public class MatchExtractionResource {
             @RestForm String season, @RestForm String date) {
         requireCompetition(competitionId);
 
+        // Losing the reviewed rows on failure here is an accepted trade-off: confirm() is a
+        // plain (non-HTMX) form POST with no cheap way to redisplay step3's reconstructed rows,
+        // and by this point the date/URL were already validated once during discover().
         try {
             extractionService.confirm(new ExtractionRequest(competitionId, fixturesUrl, season, parseDate(date)));
         } catch (BfuScraperException e) {
-            throw new BadRequestException("Грешка при извличане: " + e.getMessage());
+            return Response.seeOther(errorRedirect("Грешка при извличане: " + e.getMessage())).build();
+        } catch (IllegalArgumentException e) {
+            return Response.seeOther(errorRedirect("Невалидна дата: " + date)).build();
         }
 
         return Response.seeOther(URI.create("/matches")).build();
+    }
+
+    private static URI errorRedirect(String message) {
+        return URI.create("/matches/extract?error=" + URLEncoder.encode(message, StandardCharsets.UTF_8));
     }
 
     private void requireCompetition(Long competitionId) {
@@ -138,7 +160,7 @@ public class MatchExtractionResource {
         try {
             return LocalDate.parse(date);
         } catch (Exception e) {
-            throw new BadRequestException("Невалидна дата: " + date);
+            throw new IllegalArgumentException("Invalid date: " + date, e);
         }
     }
 

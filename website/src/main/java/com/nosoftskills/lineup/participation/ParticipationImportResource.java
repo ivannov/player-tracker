@@ -16,7 +16,6 @@ import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
@@ -49,7 +48,8 @@ public class ParticipationImportResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance step1(String username, List<Competition> competitions);
+        public static native TemplateInstance step1(String username, List<Competition> competitions, String error,
+                String url, Long competitionId, String season);
 
         public static native TemplateInstance step2(String username, List<TeamResolutionRow> rows,
                 Long competitionId, String season, List<Team> allTeams, FormationType[] formationTypes);
@@ -65,7 +65,7 @@ public class ParticipationImportResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showStep1() {
-        return Templates.step1(currentUser.username(), Competition.listAll());
+        return Templates.step1(currentUser.username(), Competition.listAll(), null, null, null, null);
     }
 
     @POST
@@ -77,7 +77,8 @@ public class ParticipationImportResource {
         try {
             names = scraperService.extractTeamNames(url);
         } catch (BfuScraperException e) {
-            throw new BadRequestException("Грешка при извличане: " + e.getMessage());
+            return Templates.step1(currentUser.username(), Competition.listAll(),
+                    "Грешка при извличане: " + e.getMessage(), url, competitionId, season);
         }
 
         List<Team> allTeams = Team.listAll();

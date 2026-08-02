@@ -1,4 +1,7 @@
 <div id="inbox-list">
+{#if error}
+<p style="color: var(--pico-del-color);">{error}</p>
+{/if}
 {#if reviews.isEmpty}
     <p>Няма чакащи прегледи.</p>
 {#else}

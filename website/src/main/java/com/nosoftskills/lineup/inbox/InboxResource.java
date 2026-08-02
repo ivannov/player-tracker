@@ -7,6 +7,7 @@ import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -35,7 +36,7 @@ public class InboxResource {
     @CheckedTemplate
     public static class Templates {
         public static native TemplateInstance page(String username, List<ReviewView> reviews);
-        public static native TemplateInstance list(List<ReviewView> reviews);
+        public static native TemplateInstance list(List<ReviewView> reviews, String error);
         public static native TemplateInstance badge(long pendingCount);
     }
 
@@ -64,8 +65,13 @@ public class InboxResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance resolve(@PathParam("id") Long id, @RestForm Long playerId) {
-        inboxService.resolveReview(id, playerId);
-        return Templates.list(inboxService.listPending());
+        String error = null;
+        try {
+            inboxService.resolveReview(id, playerId);
+        } catch (BadRequestException e) {
+            error = e.getMessage();
+        }
+        return Templates.list(inboxService.listPending(), error);
     }
 
     @POST
@@ -73,7 +79,12 @@ public class InboxResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance confirmNew(@PathParam("id") Long id) {
-        inboxService.confirmNewPlayer(id);
-        return Templates.list(inboxService.listPending());
+        String error = null;
+        try {
+            inboxService.confirmNewPlayer(id);
+        } catch (BadRequestException e) {
+            error = e.getMessage();
+        }
+        return Templates.list(inboxService.listPending(), error);
     }
 }

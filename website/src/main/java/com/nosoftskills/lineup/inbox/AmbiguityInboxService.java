@@ -119,7 +119,7 @@ public class AmbiguityInboxService {
             throw new NotFoundException("Ambiguity review not found: " + reviewId);
         }
         if (review.status != AmbiguityReviewStatus.PENDING) {
-            throw new BadRequestException("Ambiguity review is not pending: " + reviewId);
+            throw new BadRequestException("Този преглед вече е разрешен от друг администратор.");
         }
         return review;
     }
