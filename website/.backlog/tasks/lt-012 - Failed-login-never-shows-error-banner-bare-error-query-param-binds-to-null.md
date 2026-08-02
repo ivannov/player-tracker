@@ -1,9 +1,10 @@
 ---
 id: LT-012
 title: Failed login never shows error banner (bare ?error query param binds to null)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-31 19:30'
+updated_date: '2026-08-02 12:07'
 labels:
   - bug
   - auth
