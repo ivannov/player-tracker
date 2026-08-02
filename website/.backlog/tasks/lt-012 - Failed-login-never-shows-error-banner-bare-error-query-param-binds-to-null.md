@@ -21,6 +21,6 @@ MT-2.2/MT-2.3 manual test execution (LT-011.02) found that a real failed login n
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 error-page redirect (bare ?error) renders the Bulgarian error banner
-- [ ] #2 manually verified via browser: submitting a wrong password on /login shows the error message
+- [x] #1 error-page redirect (bare ?error) renders the Bulgarian error banner
+- [x] #2 manually verified via browser: submitting a wrong password on /login shows the error message
 <!-- AC:END -->
