@@ -5,8 +5,9 @@ import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 
 @Path("/login")
 public class LoginResource {
@@ -18,7 +19,8 @@ public class LoginResource {
 
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance login(@QueryParam("error") String error) {
-        return Templates.login(error != null);
+    public TemplateInstance login(@Context UriInfo uriInfo) {
+        boolean error = uriInfo.getQueryParameters().containsKey("error");
+        return Templates.login(error);
     }
 }
