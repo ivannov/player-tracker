@@ -3,10 +3,10 @@ id: LT-015
 title: >-
   Deleting Team/Competition/Participation with dependents throws raw 500 (FK
   violation exposed)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-31 20:21'
-updated_date: '2026-08-01 04:33'
+updated_date: '2026-08-02 14:53'
 labels:
   - bug
   - data-integrity
