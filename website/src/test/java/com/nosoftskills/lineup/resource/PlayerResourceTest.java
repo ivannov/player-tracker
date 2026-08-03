@@ -124,6 +124,17 @@ class PlayerResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createWithOversizedNameReturnsFriendlyErrorNotServerError() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("names", "x".repeat(2000))
+                .when().post("/players")
+                .then().statusCode(422)
+                .body(containsString("Невалидни данни"), not(containsString("DataException")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void editFormReturns200() {
         createdId = insertPlayer("Edit Test Player");
         given().when().get("/players/" + createdId + "/edit")

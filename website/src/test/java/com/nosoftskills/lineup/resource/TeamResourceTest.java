@@ -106,6 +106,18 @@ class TeamResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createWithOversizedNameReturnsFriendlyErrorNotServerError() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("name", "x".repeat(2000))
+                .formParam("location", "Test City")
+                .when().post("/teams")
+                .then().statusCode(422)
+                .body(containsString("Невалидни данни"), not(containsString("DataException")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void editFormReturns200() {
         createdId = insertTeam("Edit Test Team");
         given().when().get("/teams/" + createdId + "/edit")

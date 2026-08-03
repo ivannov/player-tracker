@@ -109,6 +109,17 @@ class CompetitionResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createWithOversizedNameReturnsFriendlyErrorNotServerError() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("name", "x".repeat(2000))
+                .when().post("/competitions")
+                .then().statusCode(422)
+                .body(containsString("Невалидни данни"), not(containsString("DataException")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void editFormReturns200() {
         createdId = insertCompetition("Edit Test League");
         given().when().get("/competitions/" + createdId + "/edit")

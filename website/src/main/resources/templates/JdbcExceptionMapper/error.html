@@ -1,0 +1,24 @@
+{#include layout}
+
+{#nav}
+{/nav}
+
+{#styles}
+main { padding-block: 2rem; }
+.error-card { max-width: 36rem; margin-inline: auto; }
+.error { color: var(--pico-del-color); }
+{/styles}
+
+{#main}
+<div class="container">
+    <article class="error-card">
+        <header>
+            <h2>Невалидни данни</h2>
+        </header>
+        <p class="error">{message}</p>
+        <p><a href="javascript:history.back()">&larr; Назад</a></p>
+    </article>
+</div>
+{/main}
+
+{/include}
