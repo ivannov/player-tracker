@@ -79,7 +79,9 @@ Postgres, all in Docker, bound to `127.0.0.1` only.
 ### Backups
 
 - Automatic: the `backup` service dumps the `db` container daily, keeping 7 daily
-  and 4 weekly copies under `./backups/` (gitignored).
+  and 4 weekly copies under `./backups/` (gitignored), plus one rolling monthly
+  copy that's refreshed each month rather than deleted — a quirk of the backup
+  image, not a retention risk.
 - Manual trigger: `docker compose --env-file .env.prod -f docker-compose.prod.yml exec backup /backup.sh`
 - Restore from a dump:
   ```bash
