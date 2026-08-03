@@ -46,7 +46,7 @@ services:
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 0
     volumes:
-      - ./backups:/backups
+      - ${BACKUPS_DIR:-./backups}:/backups
 
 volumes:
   db-data-prod:
