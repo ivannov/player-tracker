@@ -68,12 +68,34 @@ trigram-only similarity automatically -- it's an enhancement layer, never a hard
 This runs the app in Quarkus `%prod` mode against a persistent (non-dev-services)
 Postgres, all in Docker, bound to `127.0.0.1` only.
 
-1. Copy `.env.prod.example` to `.env.prod` and set a real `DB_PASSWORD`.
+1. Copy `.env.prod.example` to `.env.prod` and set a real `DB_PASSWORD` (note: this
+   only takes effect on the database's first initialization; changing it later
+   requires resetting the Postgres role's password directly, or recreating the
+   `db-data-prod` volume). Also run `mkdir -p backups` so the backups directory is
+   created with your normal user ownership instead of being auto-created as root
+   by Docker on first `up`.
 2. Build the jar: `./mvnw package -DskipTests`
 3. Bring up the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`
-4. Open http://127.0.0.1:8080 and log in as `admin` (see the seeded password hash
-   in `V1__create_teams.sql`) — **change the password immediately after first login**.
-5. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
+4. Pull the embedding model into the `ollama` service (required for name-matching;
+   without it `PlayerEmbeddingSyncJob` errors and matching silently degrades to
+   trigram-only):
+   ```bash
+   docker compose --env-file .env.prod -f docker-compose.prod.yml exec ollama ollama pull nomic-embed-text
+   ```
+5. The seeded `admin` account's password hash has no known plaintext and there's no in-app way to change it — reset it via SQL before first login:
+   1. Generate a bcrypt hash for a password of your choice (uses the same hashing the app verifies against, via the project's own dependency — no extra tools needed):
+      ```bash
+      CP=$(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)
+      echo 'System.out.println(io.quarkus.elytron.security.common.BcryptUtil.bcryptHash("your-new-password"));' | jshell --class-path "$CP" -q -
+      ```
+   2. Apply it — replace `<hash>` below with the output above. Use a **quoted heredoc** (`<<'SQL'`, note the quotes around `SQL`) so your shell doesn't try to expand the `$` characters inside the hash as parameter references:
+      ```bash
+      docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d lineup' <<'SQL'
+      UPDATE users SET password='<hash>' WHERE username='admin';
+      SQL
+      ```
+   3. Open http://127.0.0.1:8080 and log in as `admin` with the password you chose.
+6. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
    (data persists in the `db-data-prod` volume; use `down -v` only if you want to wipe it).
 
 ### Backups
@@ -87,7 +109,7 @@ Postgres, all in Docker, bound to `127.0.0.1` only.
   ```bash
   gunzip -c backups/daily/<dump-file>.sql.gz | \
     docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T db \
-    psql -U "$DB_USER" -d lineup
+    sh -c 'psql -U "$POSTGRES_USER" -d lineup'
   ```
 
 ## Related Guides
