@@ -219,6 +219,17 @@ class MatchResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void detailShowsAriaLabelsForIconOnlyButtons() {
+        createdAppearanceId = insertAppearance(existingPlayerId, homeParticipationId, true, (short) 9);
+
+        given().when().get("/matches/" + matchId)
+                .then().statusCode(200)
+                .body(containsString("aria-label=\"Запази смяна\""),
+                        containsString("aria-label=\"Добави събитие\""));
+    }
+
+    @Test
     void newFormRedirectsAnonymousToLogin() {
         given().redirects().follow(false)
                 .when().get("/matches/new")

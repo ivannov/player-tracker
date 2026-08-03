@@ -61,7 +61,9 @@ class InboxResourceTest {
                 .body(containsString("Test Team"))
                 .body(containsString("Ivan Ivanov"))
                 .body(containsString("hx-post=\"/inbox/1/resolve\""))
-                .body(containsString("hx-post=\"/inbox/1/confirm-new\""));
+                .body(containsString("hx-post=\"/inbox/1/confirm-new\""))
+                .body(containsString("hx-indicator=\"#resolve-1-10\""))
+                .body(containsString("hx-indicator=\"#confirm-new-1\""));
     }
 
     @Test
@@ -75,6 +77,7 @@ class InboxResourceTest {
                 .contentType(ContentType.HTML)
                 .body(containsString("FK Test Conflict"))
                 .body(containsString("hx-post=\"/inbox/2/resolve-team\""))
+                .body(containsString("hx-indicator=\"#resolve-team-2\""))
                 .body(not(containsString("hx-post=\"/inbox/2/confirm-new\"")))
                 .body(not(containsString("+ Нов играч")));
     }

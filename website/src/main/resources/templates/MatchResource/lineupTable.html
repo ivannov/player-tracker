@@ -22,7 +22,7 @@
                            value="{row.appearance.substitutedInMinute ?: ''}">
                     <input type="number" name="substitutedOutMinute" title="Излиза в минута" min="0" max="130"
                            value="{row.appearance.substitutedOutMinute ?: ''}">
-                    <button type="submit" class="outline secondary">✓</button>
+                    <button type="submit" class="outline secondary" aria-label="Запази смяна">✓</button>
                 </form>
                 {#else}
                 {#if row.appearance.substitutedInMinute}{row.appearance.substitutedInMinute}'{#else}—{/if}
@@ -52,7 +52,7 @@
                         {/for}
                     </select>
                     <input type="number" name="minute" title="Минута" min="0" max="130">
-                    <button type="submit" class="outline secondary">+</button>
+                    <button type="submit" class="outline secondary" aria-label="Добави събитие">+</button>
                 </form>
                 {/if}
             </td>
