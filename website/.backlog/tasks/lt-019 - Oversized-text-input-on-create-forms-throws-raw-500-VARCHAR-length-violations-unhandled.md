@@ -3,9 +3,10 @@ id: LT-019
 title: >-
   Oversized text input on create forms throws raw 500 (VARCHAR length violations
   unhandled)
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-01 04:29'
+updated_date: '2026-08-03 18:17'
 labels:
   - bug
   - data-integrity
