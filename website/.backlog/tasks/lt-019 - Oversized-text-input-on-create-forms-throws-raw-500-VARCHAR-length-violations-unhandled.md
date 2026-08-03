@@ -3,10 +3,10 @@ id: LT-019
 title: >-
   Oversized text input on create forms throws raw 500 (VARCHAR length violations
   unhandled)
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-01 04:29'
-updated_date: '2026-08-03 18:17'
+updated_date: '2026-08-03 18:43'
 labels:
   - bug
   - data-integrity
@@ -23,6 +23,6 @@ MT-13.6 manual test execution (LT-011.02) confirmed this is a systemic pattern, 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Oversized input on Team/Competition/Participation/Player create-or-edit forms is rejected with a friendly message, not a raw 500
-- [ ] #2 Fix is applied consistently (shared validation mechanism), not patched per-resource
+- [x] #1 Oversized input on Team/Competition/Participation/Player create-or-edit forms is rejected with a friendly message, not a raw 500
+- [x] #2 Fix is applied consistently (shared validation mechanism), not patched per-resource
 <!-- AC:END -->
