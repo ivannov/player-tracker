@@ -63,6 +63,19 @@ The app talks to Ollama at `http://localhost:11434` by default (override with th
 var). If Ollama isn't running or the model hasn't been pulled yet, matching falls back to
 trigram-only similarity automatically -- it's an enhancement layer, never a hard dependency.
 
+## Run in production locally
+
+This runs the app in Quarkus `%prod` mode against a persistent (non-dev-services)
+Postgres, all in Docker, bound to `127.0.0.1` only.
+
+1. Copy `.env.prod.example` to `.env.prod` and set a real `DB_PASSWORD`.
+2. Build the jar: `./mvnw package -DskipTests`
+3. Bring up the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`
+4. Open http://127.0.0.1:8080 and log in as `admin` (see the seeded password hash
+   in `V1__create_teams.sql`) — **change the password immediately after first login**.
+5. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
+   (data persists in the `db-data-prod` volume; use `down -v` only if you want to wipe it).
+
 ## Related Guides
 
 - REST Qute ([guide](https://quarkus.io/guides/qute-reference#rest_integration)): Qute integration for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.

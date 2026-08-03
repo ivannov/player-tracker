@@ -1,0 +1,36 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: lineup
+    volumes:
+      - db-data-prod:/var/lib/postgresql/data
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-data-prod:/root/.ollama
+
+  app:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    restart: unless-stopped
+    depends_on:
+      - db
+      - ollama
+    env_file:
+      - .env.prod
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/lineup
+      OLLAMA_URL: http://ollama:11434
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  db-data-prod:
+  ollama-data-prod:
