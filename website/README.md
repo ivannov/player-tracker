@@ -63,6 +63,55 @@ The app talks to Ollama at `http://localhost:11434` by default (override with th
 var). If Ollama isn't running or the model hasn't been pulled yet, matching falls back to
 trigram-only similarity automatically -- it's an enhancement layer, never a hard dependency.
 
+## Run in production locally
+
+This runs the app in Quarkus `%prod` mode against a persistent (non-dev-services)
+Postgres, all in Docker, bound to `127.0.0.1` only.
+
+1. Copy `.env.prod.example` to `.env.prod` and set a real `DB_PASSWORD` (note: this
+   only takes effect on the database's first initialization; changing it later
+   requires resetting the Postgres role's password directly, or recreating the
+   `db-data-prod` volume). Also run `mkdir -p backups` so the backups directory is
+   created with your normal user ownership instead of being auto-created as root
+   by Docker on first `up`.
+2. Build the jar: `./mvnw package -DskipTests`
+3. Bring up the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`
+4. Pull the embedding model into the `ollama` service (required for name-matching;
+   without it `PlayerEmbeddingSyncJob` errors and matching silently degrades to
+   trigram-only):
+   ```bash
+   docker compose --env-file .env.prod -f docker-compose.prod.yml exec ollama ollama pull nomic-embed-text
+   ```
+5. The seeded `admin` account's password hash has no known plaintext and there's no in-app way to change it — reset it via SQL before first login:
+   1. Generate a bcrypt hash for a password of your choice (uses the same hashing the app verifies against, via the project's own dependency — no extra tools needed):
+      ```bash
+      CP=$(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)
+      echo 'System.out.println(io.quarkus.elytron.security.common.BcryptUtil.bcryptHash("your-new-password"));' | jshell --class-path "$CP" -q -
+      ```
+   2. Apply it — replace `<hash>` below with the output above. Use a **quoted heredoc** (`<<'SQL'`, note the quotes around `SQL`) so your shell doesn't try to expand the `$` characters inside the hash as parameter references:
+      ```bash
+      docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T db sh -c 'psql -U "$POSTGRES_USER" -d lineup' <<'SQL'
+      UPDATE users SET password='<hash>' WHERE username='admin';
+      SQL
+      ```
+   3. Open http://127.0.0.1:8080 and log in as `admin` with the password you chose.
+6. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
+   (data persists in the `db-data-prod` volume; use `down -v` only if you want to wipe it).
+
+### Backups
+
+- Automatic: the `backup` service dumps the `db` container daily, keeping 7 daily
+  and 4 weekly copies under `./backups/` (gitignored), plus one rolling monthly
+  copy that's refreshed each month rather than deleted — a quirk of the backup
+  image, not a retention risk.
+- Manual trigger: `docker compose --env-file .env.prod -f docker-compose.prod.yml exec backup /backup.sh`
+- Restore from a dump:
+  ```bash
+  gunzip -c backups/daily/<dump-file>.sql.gz | \
+    docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T db \
+    sh -c 'psql -U "$POSTGRES_USER" -d lineup'
+  ```
+
 ## Related Guides
 
 - REST Qute ([guide](https://quarkus.io/guides/qute-reference#rest_integration)): Qute integration for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
