@@ -21,7 +21,6 @@ MT-1.5 manual test execution (LT-011.02) confirmed the known risk: MatchResource
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Invalid date values on /matches (e.g. not-a-date, 2026-13-40) return a friendly error/empty state instead of a raw 500
-- [ ] #2 No stack trace or internal exception detail is exposed to the client
-- [ ] #3 1,2
+- [x] #1 Invalid date values on /matches (e.g. not-a-date, 2026-13-40) return a friendly error/empty state instead of a raw 500
+- [x] #2 No stack trace or internal exception detail is exposed to the client
 <!-- AC:END -->
