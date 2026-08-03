@@ -1,9 +1,10 @@
 ---
 id: LT-021
 title: Ambiguity inbox resolve/confirm actions have no HTMX loading feedback
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-08-03 18:59'
+updated_date: '2026-08-03 19:08'
 labels:
   - bug
   - ux
@@ -20,10 +21,10 @@ MT-12.5 manual QA pass (LT-011.02 follow-up) found: InboxResource/list.html's th
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Inbox resolve/resolve-team/confirm-new buttons visibly indicate a pending request (opacity dim or spinner), consistent with the wizard steps' existing hx-indicator+aria-busy pattern
+- [x] #1 Inbox resolve/resolve-team/confirm-new buttons visibly indicate a pending request (opacity dim or spinner), consistent with the wizard steps' existing hx-indicator+aria-busy pattern
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Tests are added for new functoinality and mvn verify is successfull
+- [x] #1 Tests are added for new functoinality and mvn verify is successfull
 <!-- DOD:END -->
