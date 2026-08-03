@@ -130,6 +130,36 @@ class ParticipationResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createDuplicateReturnsFriendlyErrorNotServerError() {
+        createdParticipationId = insertParticipation("2024/2025");
+
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("teamId", teamId)
+                .formParam("competitionId", competitionId)
+                .formParam("season", "2024/2025")
+                .formParam("formationTypes", "U15")
+                .when().post("/participations")
+                .then().statusCode(422)
+                .body(containsString("вече съществува"), not(containsString("ConstraintViolationException")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void createOversizedSeasonReturnsFriendlyErrorNotServerError() {
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("teamId", teamId)
+                .formParam("competitionId", competitionId)
+                .formParam("season", "2".repeat(300))
+                .formParam("formationTypes", "U15")
+                .when().post("/participations")
+                .then().statusCode(422)
+                .body(containsString("Невалиден сезон"), not(containsString("DataException")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void editFormReturns200() {
         createdParticipationId = insertParticipation("2023/2024");
         given().when().get("/participations/" + createdParticipationId + "/edit")

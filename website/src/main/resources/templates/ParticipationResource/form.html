@@ -15,6 +15,7 @@
     fieldset input[type="checkbox"] { appearance: auto; width: auto; height: auto; border: revert; background: revert; box-shadow: revert; }
     .readonly-field { margin-bottom: 1rem; }
     .readonly-field strong { display: inline-block; min-width: 10rem; }
+    .error { color: var(--pico-del-color); }
 {/styles}
 
 {#main}
@@ -23,6 +24,10 @@
         <header>
             <h2>{#if groupId}Редактирай участие{#else}Ново участие{/if}</h2>
         </header>
+
+        {#if error}
+        <p class="error">{error}</p>
+        {/if}
 
         <form method="post"
               action="{#if groupId}/participations/{groupId}{#else}/participations{/if}">

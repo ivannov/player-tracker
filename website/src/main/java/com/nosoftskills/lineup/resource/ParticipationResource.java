@@ -48,7 +48,7 @@ public class ParticipationResource {
         public static native TemplateInstance form(String username, Long groupId,
                 Long teamId, String teamName, Long competitionId, String competitionName, String season,
                 List<Team> teams, List<Competition> competitions,
-                FormationType[] allTypes, List<FormationType> selectedTypes);
+                FormationType[] allTypes, List<FormationType> selectedTypes, String error);
     }
 
     public static class ParticipationForm {
@@ -79,7 +79,7 @@ public class ParticipationResource {
                 currentUser.username(),
                 null, null, null, null, null, null,
                 Team.listAll(), Competition.listAll(),
-                FormationType.values(), DEFAULT_SELECTED
+                FormationType.values(), DEFAULT_SELECTED, null
         );
     }
 
@@ -103,7 +103,7 @@ public class ParticipationResource {
                 currentUser.username(),
                 id, team.id, team.name, comp.id, comp.name, ref.season,
                 List.of(), List.of(),
-                FormationType.values(), selectedTypes
+                FormationType.values(), selectedTypes, null
         );
     }
 
@@ -115,9 +115,22 @@ public class ParticipationResource {
         Competition comp = Competition.findById(f.competitionId);
         if (team == null || comp == null) throw new NotFoundException();
 
-        List<String> types = f.formationTypes != null ? f.formationTypes : List.of();
-        for (String typeName : types) {
-            FormationType type = FormationType.valueOf(typeName);
+        if (f.season == null || f.season.length() > 9) {
+            return newFormError("Невалиден сезон -- очакван формат ГГГГ/ГГГГ.");
+        }
+
+        List<FormationType> types = (f.formationTypes != null ? f.formationTypes : List.<String>of())
+                .stream().map(FormationType::valueOf).toList();
+
+        for (FormationType type : types) {
+            TeamFormation tf = TeamFormation.<TeamFormation>find("team.id = ?1 AND type = ?2", team.id, type).firstResult();
+            if (tf != null && Participation.count(
+                    "teamFormation.id = ?1 AND competition.id = ?2 AND season = ?3", tf.id, comp.id, f.season) > 0) {
+                return newFormError("Това участие вече съществува за избрания отбор, лига и сезон.");
+            }
+        }
+
+        for (FormationType type : types) {
             TeamFormation tf = findOrCreateFormation(team, type);
             Participation p = new Participation();
             p.teamFormation = tf;
@@ -126,6 +139,16 @@ public class ParticipationResource {
             p.persist();
         }
         return Response.seeOther(URI.create("/participations")).build();
+    }
+
+    private Response newFormError(String message) {
+        return Response.status(422)
+                .type(MediaType.TEXT_HTML)
+                .entity(Templates.form(currentUser.username(),
+                        null, null, null, null, null, null,
+                        Team.listAll(), Competition.listAll(),
+                        FormationType.values(), DEFAULT_SELECTED, message))
+                .build();
     }
 
     @POST
