@@ -21,6 +21,6 @@ All planned features (LT-001 through LT-010) are now implemented. Before conside
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Test plan document exists and is reviewed
-- [ ] #2 Test plan has been executed and results (pass/fail, bugs found) are recorded
+- [x] #1 Test plan document exists and is reviewed
+- [x] #2 Test plan has been executed and results (pass/fail, bugs found) are recorded
 <!-- DOD:END -->
