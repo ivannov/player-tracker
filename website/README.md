@@ -76,6 +76,18 @@ Postgres, all in Docker, bound to `127.0.0.1` only.
 5. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
    (data persists in the `db-data-prod` volume; use `down -v` only if you want to wipe it).
 
+### Backups
+
+- Automatic: the `backup` service dumps the `db` container daily, keeping 7 daily
+  and 4 weekly copies under `./backups/` (gitignored).
+- Manual trigger: `docker compose --env-file .env.prod -f docker-compose.prod.yml exec backup /backup.sh`
+- Restore from a dump:
+  ```bash
+  gunzip -c backups/daily/<dump-file>.sql.gz | \
+    docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T db \
+    psql -U "$DB_USER" -d lineup
+  ```
+
 ## Related Guides
 
 - REST Qute ([guide](https://quarkus.io/guides/qute-reference#rest_integration)): Qute integration for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
