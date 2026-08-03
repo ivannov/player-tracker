@@ -190,6 +190,19 @@ class MatchResourceTest {
     }
 
     @Test
+    void listWithMalformedDateReturnsFriendlyErrorInsteadOf500() {
+        given().queryParam("date", "not-a-date")
+                .when().get("/matches")
+                .then().statusCode(200)
+                .body(containsString("Невалидна дата"), not(containsString("Exception")));
+
+        given().queryParam("date", "2026-13-40")
+                .when().get("/matches")
+                .then().statusCode(200)
+                .body(containsString("Невалидна дата"), not(containsString("Exception")));
+    }
+
+    @Test
     void detailReturns200Anonymously() {
         given().when().get("/matches/" + matchId)
                 .then().statusCode(200)

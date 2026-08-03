@@ -13,6 +13,7 @@
     .filters label { margin-bottom: 0.25rem; }
     .filters button { white-space: nowrap; }
     td.score { text-align: center; white-space: nowrap; }
+    .error { color: var(--pico-del-color); }
 {/styles}
 
 {#main}
@@ -27,6 +28,10 @@
             <a href="/matches/new" role="button">+ Нов мач</a>
             {/if}
         </header>
+
+        {#if error}
+        <p class="error">{error}</p>
+        {/if}
 
         <form class="filters" method="get" action="/matches">
             <div>

@@ -31,6 +31,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class MatchResource {
     @CheckedTemplate
     public static class Templates {
         public static native TemplateInstance list(String username, boolean isAdmin, List<Match> matches,
-                List<Competition> competitions, Long competitionId, String date);
+                List<Competition> competitions, Long competitionId, String date, String error);
         public static native TemplateInstance detail(String username, boolean isAdmin, Match match,
                 List<AppearanceRow> homeAppearances, List<AppearanceRow> awayAppearances,
                 List<Player> allPlayers, MatchEventType[] eventTypes, String error);
@@ -88,7 +89,15 @@ public class MatchResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance list(@QueryParam("competitionId") Long competitionId, @QueryParam("date") String date) {
-        LocalDate parsedDate = (date == null || date.isBlank()) ? null : LocalDate.parse(date);
+        LocalDate parsedDate = null;
+        String error = null;
+        if (date != null && !date.isBlank()) {
+            try {
+                parsedDate = LocalDate.parse(date);
+            } catch (DateTimeParseException e) {
+                error = "Невалидна дата: " + date;
+            }
+        }
 
         String baseQuery = "SELECT m FROM Match m " + DETAIL_FETCH_JOINS;
         List<Match> matches;
@@ -105,7 +114,7 @@ public class MatchResource {
             matches = Match.find(baseQuery + " ORDER BY m.date DESC, m.id DESC").list();
         }
 
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), matches, Competition.listAll(), competitionId, date);
+        return Templates.list(currentUser.username(), currentUser.isAdmin(), matches, Competition.listAll(), competitionId, date, error);
     }
 
     @GET
