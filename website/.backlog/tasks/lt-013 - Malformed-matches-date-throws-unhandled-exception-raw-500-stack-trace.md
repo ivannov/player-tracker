@@ -1,9 +1,10 @@
 ---
 id: LT-013
 title: Malformed /matches?date= throws unhandled exception (raw 500 stack trace)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-31 19:30'
+updated_date: '2026-08-03 18:06'
 labels:
   - bug
   - matches
@@ -22,4 +23,5 @@ MT-1.5 manual test execution (LT-011.02) confirmed the known risk: MatchResource
 <!-- AC:BEGIN -->
 - [ ] #1 Invalid date values on /matches (e.g. not-a-date, 2026-13-40) return a friendly error/empty state instead of a raw 500
 - [ ] #2 No stack trace or internal exception detail is exposed to the client
+- [ ] #3 1,2
 <!-- AC:END -->
