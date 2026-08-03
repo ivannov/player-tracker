@@ -532,6 +532,25 @@ class MatchResourceTest {
 
     @Test
     @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void addEventRejectsOutOfRangeMinuteWithoutServerError() {
+        createdAppearanceId = insertAppearance(existingPlayerId, homeParticipationId, true, (short) 9);
+
+        String location = given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("type", "GOAL")
+                .formParam("minute", "999")
+                .when().post("/matches/" + matchId + "/appearances/" + createdAppearanceId + "/events")
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Минутата трябва да е между 0 и 130."), not(containsString("Exception")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
     void addAppearanceRejectsMissingPlayerSelection() {
         String location = given().redirects().follow(false)
                 .contentType(ContentType.URLENC)
@@ -599,6 +618,43 @@ class MatchResourceTest {
             org.junit.jupiter.api.Assertions.assertEquals((short) 60, pa.substitutedInMinute);
             org.junit.jupiter.api.Assertions.assertNull(pa.substitutedOutMinute);
         });
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void updateSubstitutionRejectsOutBeforeInWithoutServerError() {
+        createdAppearanceId = insertAppearance(existingPlayerId, homeParticipationId, false, null);
+
+        String location = given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("substitutedInMinute", "90")
+                .formParam("substitutedOutMinute", "60")
+                .when().post("/matches/" + matchId + "/appearances/" + createdAppearanceId + "/substitution")
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("трябва да е след"), not(containsString("Exception")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void updateSubstitutionRejectsOutOfRangeMinuteWithoutServerError() {
+        createdAppearanceId = insertAppearance(existingPlayerId, homeParticipationId, false, null);
+
+        String location = given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("substitutedInMinute", "-5")
+                .when().post("/matches/" + matchId + "/appearances/" + createdAppearanceId + "/substitution")
+                .then().statusCode(303)
+                .extract().header("Location");
+
+        assertThat(location, containsString("/matches/" + matchId));
+        assertThat(location, containsString("error="));
+        given().urlEncodingEnabled(false).when().get(location).then().statusCode(200)
+                .body(containsString("Минутата трябва да е между 0 и 130."), not(containsString("Exception")));
     }
 
     private Long insertAppearance(Long playerId, Long participationId, boolean starter, Short number) {

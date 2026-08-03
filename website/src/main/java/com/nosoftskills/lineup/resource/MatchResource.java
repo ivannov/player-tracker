@@ -250,8 +250,21 @@ public class MatchResource {
             @BeanParam SubstitutionForm f) {
         PlayerAppearance pa = PlayerAppearance.findById(appearanceId);
         if (pa == null || !pa.match.id.equals(id)) throw new NotFoundException();
-        pa.substitutedInMinute = parseShort(f.substitutedInMinute);
-        pa.substitutedOutMinute = parseShort(f.substitutedOutMinute);
+
+        Short inMinute;
+        Short outMinute;
+        try {
+            inMinute = parseMinute(f.substitutedInMinute);
+            outMinute = parseMinute(f.substitutedOutMinute);
+        } catch (IllegalArgumentException e) {
+            return Response.seeOther(errorRedirect(id, e.getMessage())).build();
+        }
+        if (inMinute != null && outMinute != null && outMinute <= inMinute) {
+            return Response.seeOther(errorRedirect(id, "Минутата на смяна навън трябва да е след минутата навътре.")).build();
+        }
+
+        pa.substitutedInMinute = inMinute;
+        pa.substitutedOutMinute = outMinute;
         return Response.seeOther(URI.create("/matches/" + id)).build();
     }
 
@@ -271,10 +284,17 @@ public class MatchResource {
             return Response.seeOther(errorRedirect(id, "Невалиден тип събитие.")).build();
         }
 
+        Short minute;
+        try {
+            minute = parseMinute(f.minute);
+        } catch (IllegalArgumentException e) {
+            return Response.seeOther(errorRedirect(id, e.getMessage())).build();
+        }
+
         MatchEvent event = new MatchEvent();
         event.playerAppearance = pa;
         event.type = type;
-        event.minute = parseShort(f.minute);
+        event.minute = minute;
         event.persist();
 
         return Response.seeOther(URI.create("/matches/" + id)).build();
@@ -310,5 +330,19 @@ public class MatchResource {
 
     private static Short parseShort(String value) {
         return (value == null || value.isBlank()) ? null : Short.parseShort(value.trim());
+    }
+
+    private static Short parseMinute(String value) {
+        if (value == null || value.isBlank()) return null;
+        short minute;
+        try {
+            minute = Short.parseShort(value.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Невалидна минута: " + value);
+        }
+        if (minute < 0 || minute > 130) {
+            throw new IllegalArgumentException("Минутата трябва да е между 0 и 130.");
+        }
+        return minute;
     }
 }
