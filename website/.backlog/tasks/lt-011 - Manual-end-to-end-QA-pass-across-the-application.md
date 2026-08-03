@@ -1,10 +1,10 @@
 ---
 id: LT-011
 title: Manual end-to-end QA pass across the application
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-30 13:23'
-updated_date: '2026-07-30 13:24'
+updated_date: '2026-08-03 19:02'
 labels:
   - qa
   - testing
