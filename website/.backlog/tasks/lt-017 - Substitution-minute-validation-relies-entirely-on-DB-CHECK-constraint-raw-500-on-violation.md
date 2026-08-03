@@ -3,10 +3,10 @@ id: LT-017
 title: >-
   Minute validation relies entirely on DB CHECK constraints (substitutions +
   events) -- raw 500 on violation
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-01 04:20'
-updated_date: '2026-08-03 18:11'
+updated_date: '2026-08-03 18:16'
 labels:
   - bug
   - matches
@@ -23,9 +23,11 @@ MT-7.6 manual test execution (LT-011.02) confirmed: MatchResource.updateSubstitu
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Invalid substitution minutes (out<in, >130, negative) return a friendly error, not a raw 500
-- [ ] #2 No stack trace exposed to the client
+- [x] #1 Invalid substitution minutes (out<in, >130, negative) return a friendly error, not a raw 500
+- [x] #2 No stack trace exposed to the client
 <!-- AC:END -->
+
+
 
 ## Implementation Notes
 
