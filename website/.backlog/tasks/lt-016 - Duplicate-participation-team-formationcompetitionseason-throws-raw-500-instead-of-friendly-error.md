@@ -3,10 +3,10 @@ id: LT-016
 title: >-
   Duplicate participation (team-formation+competition+season) throws raw 500
   instead of friendly error
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-01 04:16'
-updated_date: '2026-08-03 18:07'
+updated_date: '2026-08-03 18:10'
 labels:
   - bug
   - data-integrity
@@ -23,9 +23,11 @@ MT-5.2 manual test execution (LT-011.02) confirmed the known risk: Participation
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Submitting a duplicate team-formation+competition+season participation shows a friendly error, not a raw 500
-- [ ] #2 No stack trace or internal exception detail is exposed to the client
+- [x] #1 Submitting a duplicate team-formation+competition+season participation shows a friendly error, not a raw 500
+- [x] #2 No stack trace or internal exception detail is exposed to the client
 <!-- AC:END -->
+
+
 
 ## Implementation Notes
 
