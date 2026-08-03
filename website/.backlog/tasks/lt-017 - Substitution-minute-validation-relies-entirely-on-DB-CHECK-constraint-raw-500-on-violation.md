@@ -3,10 +3,10 @@ id: LT-017
 title: >-
   Minute validation relies entirely on DB CHECK constraints (substitutions +
   events) -- raw 500 on violation
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-01 04:20'
-updated_date: '2026-08-01 04:22'
+updated_date: '2026-08-03 18:11'
 labels:
   - bug
   - matches
