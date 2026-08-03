@@ -3,10 +3,10 @@ id: LT-016
 title: >-
   Duplicate participation (team-formation+competition+season) throws raw 500
   instead of friendly error
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-01 04:16'
-updated_date: '2026-08-01 04:16'
+updated_date: '2026-08-03 18:07'
 labels:
   - bug
   - data-integrity
