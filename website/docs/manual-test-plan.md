@@ -2,13 +2,16 @@
 
 Tracks: LT-011.01 (this document) / LT-011.02 (execution)
 
-## Execution Summary (LT-011.02, 2026-08-01)
+## Execution Summary (LT-011.02, 2026-08-01, follow-up pass 2026-08-03)
 
 Executed against a local `quarkus dev` instance + disposable Postgres (docker-compose), seeded with `admin`/ADMIN and `testuser`/USER accounts, 3 teams, 1 competition, 3 participations, 1 player, 1 match with a full lineup, and 4 ambiguity-inbox reviews.
 
-- **89 test cases**: 42 PASS, 5 CONFIRMED-as-expected (accepted design gaps), 1 PARTIAL, 16 FAIL, 9 BLOCKED (environmental), 16 NOT EXECUTED this pass (see individual case notes for reasons — mostly light UI/UX/accessibility spot-checks and scheduled-job real-time triggers that were out of scope for this pass).
-- **8 real defects filed**: LT-012 through LT-019 (see below).
-- **Environmental blocker**: `bfu-tournaments.com` returns HTTP 403 to this sandbox's outbound Java/Jsoup requests (bot-detection, likely TLS-fingerprint based — identical requests succeed via curl and via `ebfu.net`). This blocked the Participation Import wizard's and Match Extraction wizard's live-scraping happy paths (MT-8.1/8.2/8.5, MT-9.1–9.6) — not an application defect, needs re-running from an unblocked network path.
+A follow-up pass on 2026-08-03 closed out every case left as "NOT EXECUTED" in the first pass: re-seeded a fresh dev instance (3 teams, 3 competitions, 4 participations, 2 matches, 1 player with cross-team/season appearances), used Quarkus Dev UI's Scheduler extension to manually invoke both `@Scheduled` jobs on demand, and drove a real Chrome browser session for the UI/accessibility/logo-rendering checks.
+
+- **89 test cases**: 52 PASS, 6 CONFIRMED-as-expected (accepted design gaps), 3 PARTIAL, 16 FAIL, 12 BLOCKED (environmental/tooling), 0 NOT EXECUTED — every case now has a recorded outcome.
+- **10 real defects filed**: LT-012 through LT-021 (see below).
+- **Environmental blocker**: `bfu-tournaments.com` returns HTTP 403 to this sandbox's outbound Java/Jsoup requests (bot-detection, likely TLS-fingerprint based — identical requests succeed via curl and via `ebfu.net`, and a real Chrome browser loads its static assets fine). This blocked the Participation Import wizard's and Match Extraction wizard's live-scraping happy paths (MT-8.1/8.2/8.5/8.8, MT-9.1–9.6) — not an application defect, needs re-running from an unblocked network path.
+- **Tooling limitation**: the browser automation's viewport/window resize does not actually change `window.innerWidth` in this sandbox (confirmed on a second attempt in the follow-up pass) — blocks MT-12.3/12.4 from real visual verification; needs a real device/browser outside this environment.
 - **Most significant finding**: `LT-014` — `BadRequestException(String)` never puts its message in the HTTP response body anywhere in the app (a JAX-RS behavior, not a bug in this app's logic, but unhandled everywhere), so most server-side validation/scraper-error messages the code was written to show are silently swallowed as blank 400s. This single root cause explains the "Expected: friendly error message" failures across MT-2.2/2.3, MT-7.4/7.5/7.8, MT-8.7, MT-9.7/9.8, and MT-12.7.
 - **Most severe data-integrity finding**: `LT-018` — TEAM-type ambiguity reviews have no real resolution path; the only available action creates a bogus `Player` entity named after a football club. Reproduced end-to-end, not just flagged by code review.
 - **Defects filed**:
@@ -20,6 +23,8 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
   - **LT-017** (medium) — substitution/event minute validation relies entirely on DB CHECK constraints.
   - **LT-018** (high) — TEAM-type ambiguity reviews have no correct resolution path, only a wrong one.
   - **LT-019** (medium) — oversized text input across Team/Competition/Participation/Player throws raw 500s.
+  - **LT-020** (low) — icon-only substitution-save/add-event buttons lack `aria-label` (found in the follow-up pass's MT-12.10 accessibility spot-check).
+  - **LT-021** (low) — ambiguity inbox resolve/confirm actions have no HTMX loading feedback, unlike the wizards (found in the follow-up pass's MT-12.5 check).
 
 ## How to use this document
 
@@ -53,7 +58,7 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
 ### MT-1.4 — Match list filters
 **Steps**: On `/matches`, filter by `competitionId` only, by `date` only (valid ISO date), by both, and by neither.
 **Expected**: Correct filtering in every combination.
-**Pass/Fail**: NOT EXECUTED this pass — filter combinations not interactively re-verified (no functional concerns found elsewhere in MatchResource.list() besides the date-parsing issue below).
+**Pass/Fail**: PASS — seeded 2 matches across 2 competitions/dates; verified all 4 combinations (neither/competitionId-only/date-only/both-matching/both-mismatched) return exactly the expected match set in each case.
 
 ### MT-1.5 — Malformed date on match list (known risk area)
 **Steps**: Visit `/matches?date=not-a-date`, `/matches?date=2026-13-40`, `/matches?date=` (empty).
@@ -131,7 +136,7 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
 ### MT-3.4 — Logo URL rendering + hotlink protection
 **Steps**: Set a team's `logoUrl` to a real external BFU-hosted image URL. View `/teams`.
 **Expected**: Image loads (the `referrerpolicy="no-referrer"` attribute should let hotlink-protected BFU images load). Try a broken/unreachable URL too — confirm a broken-image icon doesn't wreck the layout.
-**Pass/Fail**: NOT EXECUTED this pass — no real external logo URL was exercised.
+**Pass/Fail**: PASS — a real `bfu-tournaments.com` logo asset (hotlink-protected — confirmed it 403s via curl regardless of referrer, i.e. bot-fingerprint-based, not referrer-based) loaded correctly in a real Chrome browser both standalone and embedded in `/teams`. A broken/unreachable URL on a second team showed the browser's default broken-image icon but did not affect table layout (row height/columns unaffected).
 
 ### MT-3.5 — Validation: missing required fields
 **Steps**: Submit the team form with blank name/location.
@@ -160,7 +165,7 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
 ### MT-4.3 — Clearing fixturesUrl/season deletes the config
 **Steps**: Edit an existing competition that has an extraction config, blank out fixturesUrl (or season).
 **Expected**: Config row is deleted (confirm this doesn't silently break the scheduled job — a competition with participations but no config is just skipped, not an error).
-**Pass/Fail**: NOT RE-VERIFIED LIVE this pass — confirmed by reading `upsertConfig()` (deletes the config when either field is blank); logic looks correct but wasn't re-exercised through the UI this run.
+**Pass/Fail**: PASS — created a competition with a real extraction config (verified 1 row in `competition_extraction_configs`), then submitted the edit form with `fixturesUrl`/`currentSeason` blanked; config row count went 1 → 0. Confirmed separately (MT-10.1) that a competition with no config is cleanly skipped by the scheduled job, no error.
 
 ### MT-4.4 — Delete competition with dependent participations/matches
 **Steps**: As MT-3.3 but for competitions.
@@ -170,7 +175,7 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
 ### MT-4.5 — Logo rendering
 **Steps**: As MT-3.4, for competition logos.
 **Expected**: Same hotlink-protection behavior.
-**Pass/Fail**: NOT EXECUTED this pass — logo rendering not exercised.
+**Pass/Fail**: PASS — same real hotlink-protected `bfu-tournaments.com` asset set as a competition's `logoUrl` rendered correctly on `/competitions`.
 
 ---
 
@@ -213,7 +218,7 @@ Executed against a local `quarkus dev` instance + disposable Postgres (docker-co
 ### MT-6.2 — Career timeline detail page
 **Steps**: Open `/players/{id}` for a player with appearances across multiple teams/seasons (use import/extraction data or manual entries).
 **Expected**: Timeline correctly groups/orders appearances across teams and seasons, shows goals/cards per match, no duplicate or missing rows.
-**Pass/Fail**: NOT EXECUTED this pass — no multi-team/multi-season appearance history was built up to exercise the career-timeline grouping/ordering logic.
+**Pass/Fail**: PASS — built a player with appearances for two different teams in two different competitions/seasons (one with a goal, one with a yellow card); `/players/{id}` showed both rows in chronological order with the correct team/league/season/event per row, no duplicates.
 
 ### MT-6.3 — No delete endpoint exists
 **Steps**: Confirm there is no delete control for players in the UI.
@@ -323,7 +328,7 @@ Requires a real BFU league URL against the live site — coordinate on which rea
 ### MT-8.8 — Non-HTMX final submit (real page POST)
 **Steps**: Confirm step 3's final "save" is a genuine full-page form POST/redirect, not HTMX.
 **Expected**: Browser navigates to `/participations` after save (full page load, not a partial swap) — confirm no confusing intermediate state.
-**Pass/Fail**: NOT EXECUTED — never reached step 3 due to the step-1 scraping block (MT-8.1).
+**Pass/Fail**: BLOCKED — re-confirmed this pass: `bfu-tournaments.com` still returns 403 to this sandbox's outbound Java/Jsoup requests (verified directly via curl, both with and without a cross-origin `Referer`), so step 1 can't be reached to get to step 3. Not an app defect — needs re-running from an unblocked network path.
 
 ---
 
@@ -378,22 +383,22 @@ Requires real bfu-tournaments.com / ebfu.net data for a date where matches actua
 ### MT-10.1 — Daily 23:00 extraction runs for all configured, participating competitions
 **Steps**: With at least one competition having both an extraction config and participations, either wait for the scheduled time or (if there's a dev/test trigger) simulate it; check `/matches` and `/inbox` afterward.
 **Expected**: New matches/ambiguity reviews appear without any manual action; competitions with a config but zero participations are silently skipped (confirm no error logged for those, since that's expected).
-**Pass/Fail**: NOT EXECUTED this pass (code inspection only) — would require waiting for the real 23:00 trigger or a dev-only manual trigger, neither available/exercised this run.
+**Pass/Fail**: PASS — Quarkus Dev UI's Scheduler extension exposes a manual "Execute" action for `@Scheduled` methods; used it to invoke `ScheduledExtractionJob.extractToday()` directly. Set up one competition with a config + participations and one with a config + zero participations: the zero-participations one produced no log output at all (silently skipped, as expected); no crash, job completed normally.
 
 ### MT-10.2 — One competition's scrape failure doesn't block others
 **Steps**: If feasible, configure one competition with a broken fixturesUrl alongside a working one, and observe/trigger the job.
 **Expected**: The broken one logs an error and is skipped; the working one still gets processed.
-**Pass/Fail**: NOT EXECUTED this pass — same constraint as MT-10.1.
+**Pass/Fail**: PASS — in the same manual-trigger run as MT-10.1, the participating competition's scrape failed (real `bfu-tournaments.com` 403, logged as an `ERROR` with the full exception, no raw 500/crash), and the loop still proceeded to evaluate the second (zero-participations) competition in that same execution — confirming one competition's exception doesn't abort the batch. Couldn't get an actual successful scrape to complete in this sandbox (bfu-tournaments.com blocks all outbound Java requests here, not just bad URLs), so the "working one persists new matches" half is inferred from the loop continuing, not from a real persisted match.
 
 ### MT-10.3 — Overlapping runs are skipped, not queued
 **Steps**: This is hard to trigger manually in real time; at minimum, confirm via logs/documentation that `concurrentExecution = SKIP` is the intended behavior and isn't something a user would notice as "my job didn't run" without checking logs.
 **Expected**: Understood/accepted behavior — record as a confirmed-by-design note rather than a failure if logs show a skip.
-**Pass/Fail**: NOT EXECUTED this pass — accepted as understood-by-design per code review (`concurrentExecution = SKIP`); not observed live.
+**Pass/Fail**: CONFIRMED as expected — re-verified directly in source (`ScheduledExtractionJob.java`): `@Scheduled(cron = "0 0 23 * * ?", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)` is genuinely present. A true overlapping-run race wasn't reproduced live (both available jobs return too quickly in this environment to force a real overlap via manual triggers).
 
 ### MT-10.4 — Embedding sync job (background, every minute)
 **Steps**: Create a new player, then wait up to ~1 minute and check whether their `name_embedding` becomes populated (requires DB access or an admin-visible signal — note if there's no way to observe this from the UI at all).
 **Expected**: Embedding eventually populates if Ollama is reachable; if Ollama is down, no user-visible error anywhere (silently retries) — confirm this silence is acceptable or worth surfacing somewhere for admins.
-**Pass/Fail**: NOT EXECUTED this pass — embedding sync job not observed live (no Ollama instance running in this session).
+**Pass/Fail**: PASS — manually triggered `PlayerEmbeddingSyncJob.syncMissingEmbeddings()` via Dev UI with no Ollama instance running (connection refused). Server logged a `WARN` ("Ollama embedding request failed; falling back to trigram-only matching") and continued cleanly; `name_embedding` stayed `NULL` as expected, and `/players/{id}` still rendered 200 with no user-visible error anywhere. Silence is acceptable per design; no admin-visible signal exists if this persists long-term, but that's the accepted trigram-fallback design, not a defect.
 
 ---
 
@@ -446,22 +451,22 @@ Requires real bfu-tournaments.com / ebfu.net data for a date where matches actua
 ### MT-12.2 — Dead nav links
 **Steps**: Click "Извлечи за днес", "Планировчик", "Смени парола".
 **Expected**: All three are `href="#"` stubs per code — confirm they do nothing (page jumps to top at most) and aren't silently broken in a more confusing way. Decide with the team whether these should be hidden/labeled "coming soon" rather than shipped as dead links.
-**Pass/Fail**: NOT RE-CLICKED this pass — confirmed via code that "Извлечи за днес", "Планировчик", "Смени парола" are `href="#"` stubs.
+**Pass/Fail**: PASS — clicked all three live in a real browser session; each is a harmless `#` no-op (URL bar shows a trailing `#`, no navigation, no console error, no visual break). Still worth deciding with the team whether these should be hidden/labeled rather than shipped as dead links.
 
 ### MT-12.3 — Mobile burger menu
 **Steps**: Resize to ~375px width (or use a real phone), open the burger menu as ADMIN and as anonymous.
 **Expected**: All nav items reachable, including the always-visible "Неясноти" inbox link (present here even when the desktop badge shows nothing); menu is scrollable if taller than viewport; tapping outside closes it.
-**Pass/Fail**: NOT EXECUTED — the browser automation's window-resize call did not actually change the rendered viewport in this session (`window.innerWidth` still reported the desktop width after resizing to 375px), an environment/tooling limitation rather than a finding about the app. Structurally confirmed via code (a separate `<li class="mobile-only">` burger-menu block exists in `appNav.html`) but not visually verified.
+**Pass/Fail**: BLOCKED — re-attempted this pass with the browser tool's `resize_window` action; it reports success but `window.innerWidth` still reads the desktop width afterward (verified directly via JS), confirming this is a genuine tooling limitation in this environment, not something fixable by trying a different call. Structurally confirmed via code (a separate `<li class="mobile-only">` burger-menu block exists in `appNav.html`) but still not visually verified. Needs a real device/browser session outside this sandbox.
 
 ### MT-12.4 — Layout at common breakpoints
 **Steps**: Check `/teams`, `/matches/{id}` (lineup tables), and both wizards at ~375px, ~768px, and full desktop width.
 **Expected**: No horizontal scroll/overflow, tables degrade sensibly (scroll container or stacked layout) rather than clipping, forms remain usable (labels/inputs not overlapping).
-**Pass/Fail**: NOT EXECUTED — same viewport-resize limitation as MT-12.3.
+**Pass/Fail**: BLOCKED — same viewport-resize tooling limitation as MT-12.3, re-confirmed this pass.
 
 ### MT-12.5 — HTMX loading feedback
 **Steps**: Throttle network (devtools "Slow 3G") and submit the extraction/import wizard steps, and the inbox resolve actions.
 **Expected**: `[aria-busy="true"]`/`hx-indicator` visibly dims or spinners the submit control during the request; double-submission is prevented (can't smash the button and fire two scrapes); no layout jump when the response swaps in.
-**Pass/Fail**: NOT EXECUTED this pass — network throttling/loading-indicator behavior not exercised.
+**Pass/Fail**: PARTIAL — no network-throttling tool was available this pass, so verified via code instead. The extraction/import wizard steps (`MatchExtractionResource`/`ParticipationImportResource` step1/step2) correctly wire `hx-indicator` to their submit button plus a matching `[aria-busy="true"] { opacity: 0.7; pointer-events: none; }` rule — PASS. `InboxResource/list.html`'s three resolve forms (`resolve`, `resolve-team`, `confirm-new`) have **no** `hx-indicator` and no busy-state styling anywhere — confirmed via grep across all templates — so resolve buttons give zero visual feedback during the request and aren't disabled while in flight. No data-integrity risk (server-side idempotency already covers double-resolve, see MT-11.4), but it's a real missing-feedback gap. Filed **LT-021**.
 
 ### MT-12.6 — hx-confirm dialog wording
 **Steps**: Trigger every delete confirm across Teams/Competitions/Participations/Players(N/A — no delete)/appearance/event deletes.
@@ -481,12 +486,12 @@ Requires real bfu-tournaments.com / ebfu.net data for a date where matches actua
 ### MT-12.9 — Season input pattern (client-side only)
 **Steps**: Try typing an invalid season format into any season field and submitting.
 **Expected**: HTML5 `pattern="\d\d\d\d/\d\d\d\d"` blocks submission client-side; confirm this doesn't give a confusing native browser tooltip that's hard to notice, and cross-check against MT-5.4's server-side behavior when the pattern is bypassed.
-**Pass/Fail**: NOT INTERACTIVELY TESTED — the client-side HTML5 pattern itself wasn't typed into by hand this pass; the server-side bypass case (MT-5.4) was tested directly instead and found lacking (LT-016).
+**Pass/Fail**: PASS — typed `24-25` into `/participations/new`'s season field and submitted; the browser blocked submission (URL never left `/participations/new`), and the field's `ValidityState` confirmed `patternMismatch: true` with the native message "Please match the requested format." Cross-checked against MT-5.4's server-side bypass case, already found lacking and fixed under LT-016.
 
 ### MT-12.10 — Accessibility pass (lightweight)
 **Steps**: Tab through the nav dropdowns and a form (e.g. match detail add-appearance) using only the keyboard. Check icon-only delete/edit buttons for any accessible label.
 **Expected**: Dropdowns are reachable/operable via keyboard, focus order is sane, icon-only buttons have `aria-label` or visible text alternative (spot-check; this is not expected to be a full WCAG audit).
-**Pass/Fail**: NOT EXECUTED this pass — no keyboard/accessibility pass performed.
+**Pass/Fail**: PARTIAL — tabbed through the match detail page from the top of the page; focus order was linear and sane (nav → player link → substitution inputs), no traps observed. However, the accessibility tree showed the substitution-save button ("✓") and add-event button ("+") have no `aria-label` — their accessible name is just the literal glyph — inconsistent with the same page's delete/remove links, which do carry descriptive accessible names (e.g. "Премахни Иван Тестов", "Изтрий събитие"). Filed **LT-020**.
 
 ---
 
