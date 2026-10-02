@@ -23,9 +23,9 @@ services:
     depends_on:
       - db
       - ollama
-    env_file:
-      - .env.prod
     environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_URL: jdbc:postgresql://db:5432/lineup
       OLLAMA_URL: http://ollama:11434
     ports:
