@@ -1,7 +1,6 @@
 package com.nosoftskills.lineup.scraping;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
@@ -12,14 +11,10 @@ public class BfuLeagueScraperService {
 
     public List<String> extractTeamNames(String url) throws BfuScraperException {
         try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .referrer("https://bfu-tournaments.com")
-                    .timeout(15_000)
-                    .get();
+            Document doc = BfuHttp.get(url);
             return parseTeamNames(doc);
         } catch (IOException e) {
-            throw new BfuScraperException("Failed to fetch BFU page: " + url, e);
+            throw new BfuScraperException("Failed to fetch BFU page: " + url + " (" + e.getMessage() + ")", e);
         }
     }
 

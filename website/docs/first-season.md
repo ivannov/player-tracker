@@ -68,12 +68,16 @@ Click **Извлечи отбори**.
 Each row shows the team name as BFU writes it (*Извлечен отбор*):
 
 - If a team with exactly that name (case-insensitive) already exists, it's pre-selected.
-- Otherwise, either **search** for the existing club (type part of the name and pick from the list),
-  or click **+ Нов отбор** and enter the canonical name and city.
+- Otherwise the row opens in **new team** mode, with the BFU name filled in. BFU often uses the
+  full legal name (`ПРОФЕСИОНАЛЕН ФУТБОЛЕН КЛУБ ЦСКА ЕАД`), so shorten it to your canonical name
+  and add the city now, or rename the team later at **Отбори**. The BFU spelling is remembered as
+  an alias either way.
+- To link a row to an existing club instead, click **← Търсене на отбор**, type part of the name
+  and pick it from the list.
 - **Формация**: once a team is chosen, pick one of its formations, or pick
   **— добави нова формация —** and choose a type. New teams always get `FIRST`.
 
-Leaving a row empty skips it.
+Clearing a row's name (or its search box) skips it.
 
 ### Step 3: review
 

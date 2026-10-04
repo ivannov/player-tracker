@@ -1,7 +1,6 @@
 package com.nosoftskills.lineup.scraping;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -15,22 +14,16 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class BfuMatchScraperService {
 
-    private static final String USER_AGENT =
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final String STARTERS_HEADING = "Стартов състав";
     private static final String RESERVES_HEADING = "Резервен състав";
     private static final Pattern MINUTE_PATTERN = Pattern.compile("(\\d+)(?:\\s*\\+\\s*(\\d+))?'");
 
     public BfuMatchData extractMatch(String url) throws BfuScraperException {
         try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent(USER_AGENT)
-                    .referrer("https://bfu-tournaments.com")
-                    .timeout(15_000)
-                    .get();
+            Document doc = BfuHttp.get(url);
             return parseMatch(doc);
         } catch (IOException e) {
-            throw new BfuScraperException("Failed to fetch bfu-tournaments.com match page: " + url, e);
+            throw new BfuScraperException("Failed to fetch bfu-tournaments.com match page: " + url + " (" + e.getMessage() + ")", e);
         }
     }
 

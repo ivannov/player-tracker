@@ -97,7 +97,11 @@ class ParticipationImportResourceTest {
                 .then().statusCode(200)
                 .body(containsString("import test team"))
                 .body(containsString("Unknown FC"))
-                .body(containsString("import-wizard"));
+                .body(containsString("import-wizard"))
+                // unmatched rows default to "+ Нов отбор" pre-filled with the scraped name, so
+                // clicking straight through creates the team instead of silently skipping it
+                .body(containsString("name=\"teamName\" placeholder=\"Название на отбора\"\n"
+                        + "                                           value=\"Unknown FC\""));
     }
 
     @Test

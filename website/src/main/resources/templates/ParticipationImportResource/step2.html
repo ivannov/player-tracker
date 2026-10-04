@@ -35,7 +35,7 @@
                                 <input type="hidden" name="scrapedName" value="{row.scrapedName}">
                             </td>
                             <td class="team-cell">
-                                <div class="search-fields">
+                                <div class="search-fields"{#if !row.resolvedTeam} hidden{/if}>
                                     <input type="text" class="team-search-input" list="teams-list" autocomplete="off"
                                            placeholder="Търсете отбор по име"
                                            value="{#if row.resolvedTeam}{row.resolvedTeam.name} ({row.resolvedTeam.location}){/if}">
@@ -48,8 +48,9 @@
                                            hx-include="this">
                                     <button type="button" class="outline secondary new-team-toggle" data-row="{row_index}">+ Нов отбор</button>
                                 </div>
-                                <div class="new-team-fields" hidden>
-                                    <input type="text" name="teamName" placeholder="Название на отбора">
+                                <div class="new-team-fields"{#if row.resolvedTeam} hidden{/if}>
+                                    <input type="text" name="teamName" placeholder="Название на отбора"
+                                           value="{#if !row.resolvedTeam}{row.scrapedName}{/if}">
                                     <input type="text" name="teamLocation" placeholder="Град">
                                     <button type="button" class="outline secondary existing-team-toggle" data-row="{row_index}">← Търсене на отбор</button>
                                 </div>
@@ -59,7 +60,7 @@
                                     {#if row.resolvedTeam}
                                     {#include ParticipationImportResource/formationsSelect formations=row.formations formationTypes=formationTypes /}
                                     {#else}
-                                    <span class="formation-placeholder">Изберете отбор</span>
+                                    <span class="formation-placeholder">Ще се създаде нов отбор — Мъже</span>
                                     <input type="hidden" name="formationTypeId" value="">
                                     <input type="hidden" name="newFormationType" value="">
                                     {/if}
