@@ -1,9 +1,10 @@
 ---
 id: LT-022
 title: 'Transfers create duplicate players: cross-club inbox candidates + player merge'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-10-04 06:02'
+updated_date: '2026-10-04 06:02'
 labels: []
 dependencies: []
 priority: medium
