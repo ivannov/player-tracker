@@ -45,3 +45,9 @@ nb-configuration.xml
 # Local production stack
 .env.prod
 backups/
+
+# Version project Claude Code skills (overrides the global .claude ignore); keep other local .claude files ignored
+!.claude/
+.claude/*
+!.claude/skills/
+!.claude/settings.json

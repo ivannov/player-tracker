@@ -11,6 +11,7 @@ them in PostgreSQL and serves them through a Bulgarian-language web UI.
 | [First season: getting data in](first-season.md) | go from an empty database to competitions, teams and matches |
 | [Rolling over to a new season](new-season.md) | start the next season without breaking the previous one |
 | [Querying players, teams and matches](querying.md) | find things in the UI, or run SQL for questions the UI can't answer |
+| [Use cases](use_cases.puml) ([specs](use_cases/)) and [entity model](entity_model.md) | know what the system must do: the AI Unified Process specification every change starts from |
 
 ## Concepts in one minute
 

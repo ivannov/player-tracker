@@ -1,0 +1,56 @@
+@startuml Use Cases Overview
+left to right direction
+
+actor "Visitor" as visitor
+actor "Registered User" as user
+actor "Administrator" as admin
+actor "Scheduler" as scheduler
+actor "BFU Tournaments Site" as bfu
+actor "EBFU Site" as ebfu
+actor "Embedding Service" as embedding
+
+rectangle "Lineup Tracker" {
+    usecase "UC-001\nBrowse League Data" as UC001
+    usecase "UC-002\nSearch Player History" as UC002
+    usecase "UC-003\nSign In and Out" as UC003
+    usecase "UC-004\nManage Teams" as UC004
+    usecase "UC-005\nManage Competitions" as UC005
+    usecase "UC-006\nManage Participations" as UC006
+    usecase "UC-007\nImport Participations from League Page" as UC007
+    usecase "UC-008\nRecord Match Manually" as UC008
+    usecase "UC-009\nExtract Lineups for a Date" as UC009
+    usecase "UC-010\nExtract Lineups Daily" as UC010
+    usecase "UC-011\nResolve Name Ambiguities" as UC011
+    usecase "UC-012\nManage Players" as UC012
+    usecase "UC-013\nCompute Player Name Embeddings" as UC013
+}
+
+visitor --> UC001
+visitor --> UC002
+user --> UC001
+user --> UC002
+user --> UC003
+admin --> UC001
+admin --> UC002
+admin --> UC003
+admin --> UC004
+admin --> UC005
+admin --> UC006
+admin --> UC007
+admin --> UC008
+admin --> UC009
+admin --> UC011
+admin --> UC012
+scheduler --> UC010
+scheduler --> UC013
+
+UC007 --> bfu
+UC009 --> bfu
+UC009 --> ebfu
+UC009 --> embedding
+UC010 --> bfu
+UC010 --> ebfu
+UC010 --> embedding
+UC013 --> embedding
+
+@enduml

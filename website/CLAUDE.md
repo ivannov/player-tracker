@@ -18,6 +18,52 @@ Web app that scrapes starting lineups from the Bulgarian Football Union (BFU) si
 4. Team statistics
 5. Login with ADMIN / USER roles
 
+## AI Unified Process (mandatory for every change)
+This project follows the [AI Unified Process](https://unifiedprocess.ai) (plugin `aiup-core`). The specification in `docs/` is the source of truth for behavior; code follows the spec, never the other way round. It applies to **every** change: new features, enhancements, and bug fixes.
+
+### Artifacts
+- `docs/use_cases.puml`: actors and use cases (`UC-001`…`UC-013`)
+- `docs/use_cases/UC-XXX-<kebab-name>.md`: one spec per use case (steps, alternative flows `A<n>`, business rules `BR-YYY`)
+- `docs/entity_model.md`: Mermaid ER diagram plus attribute tables for every table
+- Not created yet: `docs/vision.md`, `docs/requirements.md`, `docs/glossary.md`, `docs/test_cases/`, `docs/processes/`. Create them with `/requirements`, `/test-case`, and `/business-process` when a change needs them. Never invent `FR-*`/`NFR-*` ids for a `**Requirements:**` line until the catalog exists.
+- The baseline was produced by `/reverse-engineer`, so all specs have `**Status:** Implemented`. A `> Note:` in a spec records a known gap or suspected bug in the current code.
+
+### Before touching code
+1. Find the affected use case(s): read `docs/use_cases.puml` and grep `docs/use_cases/` for the behavior. Read the whole spec plus `docs/entity_model.md`.
+2. Read the business rules a spec cites from other use cases (`UC-009 BR-004`).
+
+### New feature or behavior change
+1. **Spec first.** Run `/use-case-spec` to update an existing `UC-XXX` or add a new one. A new use case also needs `/use-case-diagram`. A data change also needs `/entity-model`. A new use case starts as `Draft`.
+2. Run the spec checks (below), show the user the spec diff, and **stop for review**. Implement only once the user approves. Never change a `**Status:**` line yourself; propose the new value instead.
+3. Implement against the spec. Every schema change needs a new Flyway migration and the matching `docs/entity_model.md` update in the same change.
+4. Add a Backlog task (see the Backlog section) whose description names the use case(s), and whose acceptance criteria map to spec steps, flows, and rules.
+
+### Bug fix
+Decide first whether the code or the spec is wrong:
+- **Code deviates from the spec:** fix the code and add a test named after the flow or rule it violated. The spec stays unchanged.
+- **The spec is wrong, silent, or ambiguous** (the behavior has no alternative flow or rule, or a `> Note:` describes it): update the spec via `/use-case-spec UC-XXX` first, get the user's confirmation, then fix the code. Remove the `> Note:` once it is resolved.
+- **Purely technical** (build, infrastructure, performance with no visible behavior change): no spec change. Say so explicitly in the summary.
+
+Never close a gap in the spec with a silent assumption. Ask the user, or list it under **Open questions** (`UC-XXX step N / A<n> / BR-YYY`: question, possible readings).
+
+### Traceability markers
+- **Code:** put `// UC-XXX BR-YYY: <rule restated in one line>` directly above the method, query condition, or check that enforces a rule. Add the marker whenever you implement or touch a rule, and keep it in step when a rule changes or is removed. Always qualify the rule with its use case id.
+- **Tests:** the test class gets `@DisplayName("UC-XXX: <Use Case Name>")`, and each test method `@DisplayName("A<n>: …")`, `@DisplayName("BR-YYY: …")`, or `@DisplayName("Main: …")` for the flow or rule it covers. A test class covering several use cases puts the qualified id on each method instead (`"UC-009 BR-006: …"`). Existing tests predate the convention: add markers when you touch them, with no bulk retrofit.
+
+### Spec checks (run after every spec edit; both must pass)
+```bash
+AIUP=$(ls -d ~/.claude/plugins/cache/ai-unified-process-marketplace/aiup-core/*/skills | sort -V | tail -1)
+python3 $AIUP/use-case-spec/scripts/validate_use_case.py --strict docs/use_cases/UC-*.md
+python3 $AIUP/spec-review/scripts/spec_lint.py --strict
+```
+Use `/spec-review UC-XXX` for the advisory semantic review before asking for approval of a new or substantially changed use case.
+
+### Writing rules for specs
+- Steps stay at the business level: no HTTP, SQL, class or framework names.
+- `BR-YYY` ids restart at `BR-001` in every file. Reference another use case's rule as `UC-XXX BR-YYY`, never by copying it.
+- Entity-model types come only from `Long, String, Integer, Decimal, Boolean, Date, DateTime, BLOB`. Validation Rules come only from the `/entity-model` vocabulary.
+- Keep ids stable: never renumber or reuse `UC-*`, `BR-*`, or `A<n>` after commit. Mark a dropped use case `Obsolete` instead of deleting it.
+
 ## Key Conventions
 - Package root: `com.nosoftskills.lineup`
 - DB migrations in `src/main/resources/db/migration/`
