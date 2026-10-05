@@ -85,13 +85,14 @@ Run the extraction wizard for the first round (or let the nightly job do it). Ex
 - After resolving, **re-run the extraction for that date** so the players get added to the
   lineups.
 
-**Transfers between clubs.** A player arriving from another club isn't offered as a candidate,
-because candidates come only from the new club's own past players. **+ Нов играч** will create a
-second record for that person, and the app has no merge function yet. If keeping careers in one
-record matters for a particular player, add their appearances by hand on the match page
-(`/matches/{id}` → pick the existing player) rather than resolving the inbox entry. Be aware that
-the inbox entry then stays pending, and the same name will be queued again by later extractions.
-In practice it's usually better to accept the duplicate for now and track it.
+**Transfers between clubs.** The inbox also offers close name matches from *other* clubs, labelled
+with the club they last played for (e.g. `Иван Петров · от Левски (1.00)`). If it's the same
+person, pick that button: the alias is saved for the new club and later extractions auto-resolve.
+These cross-club matches are never auto-resolved, because the same name at another club is often a
+different person. If a duplicate was created anyway, open the player you want to keep
+(`/players/{id}`), expand **Възможни дубликати**, and click **Обедини тук** on the duplicate. Its
+matches and aliases move over and the duplicate is deleted. The merge is refused if both records
+played in the same match.
 
 ### 5. Verify
 

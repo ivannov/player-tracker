@@ -45,7 +45,9 @@ public class AmbiguityInboxService {
     public record ReviewView(Long id, String rawName, String teamName, boolean teamReview, List<CandidateView> candidates) {
     }
 
-    public record CandidateView(Long playerId, String playerNames, java.math.BigDecimal score) {
+    // otherClub is the candidate's latest club when it differs from the review's team (a likely
+    // transfer), null otherwise.
+    public record CandidateView(Long playerId, String playerNames, String otherClub, java.math.BigDecimal score) {
     }
 
     public long countPending() {
@@ -67,9 +69,11 @@ public class AmbiguityInboxService {
                 reviewIds).list();
         Map<Long, List<AmbiguityCandidate>> candidatesByReview = candidates.stream()
                 .collect(Collectors.groupingBy(c -> c.ambiguityReview.id));
+        Map<Long, PlayerMatchingService.LatestClub> latestClubs = playerMatchingService.latestClubs(
+                candidates.stream().map(c -> c.player.id).collect(Collectors.toSet()));
 
         return reviews.stream()
-                .map(r -> toView(r, candidatesByReview.getOrDefault(r.id, List.of())))
+                .map(r -> toView(r, candidatesByReview.getOrDefault(r.id, List.of()), latestClubs))
                 .toList();
     }
 
@@ -176,11 +180,17 @@ public class AmbiguityInboxService {
         review.resolvedBy = currentUser.username();
     }
 
-    private ReviewView toView(AmbiguityReview review, List<AmbiguityCandidate> candidates) {
+    private ReviewView toView(AmbiguityReview review, List<AmbiguityCandidate> candidates,
+            Map<Long, PlayerMatchingService.LatestClub> latestClubs) {
         return new ReviewView(review.id, review.rawName, review.team.name,
                 review.type == AmbiguityReviewType.TEAM,
                 candidates.stream()
-                        .map(c -> new CandidateView(c.player.id, c.player.names, c.score))
+                        .map(c -> new CandidateView(c.player.id, c.player.names,
+                                otherClub(latestClubs.get(c.player.id), review.team.id), c.score))
                         .toList());
+    }
+
+    private static String otherClub(PlayerMatchingService.LatestClub club, Long reviewTeamId) {
+        return club == null || club.teamId().equals(reviewTeamId) ? null : club.teamName();
     }
 }

@@ -220,11 +220,13 @@ Your daily or weekly routine:
 
 ## Known limitations
 
-- **Transfers create duplicates.** When a player moves to another club, their name is scraped
-  under the new club. Inbox candidates come only from players who already played for *that* club,
-  so the old player record isn't offered, and **+ Нов играч** creates a second record. There's
-  currently no merge function. Moves *within* a club (U17 → U19 → Мъже) are fine, because
-  candidates are scoped to the club, not the formation.
+- **Transfers need a human decision.** A player arriving from another club is never
+  auto-resolved. The inbox offers close name matches from other clubs, labelled with their last
+  club, for the admin to pick. Duplicates that slip through can be merged from the player page
+  (**Възможни дубликати** → **Обедини тук**). Merge suggestions are by name similarity only, so a
+  duplicate spelled very differently won't be suggested; rename one record first so the names
+  match. Moves *within* a club (U17 → U19 → Мъже) auto-resolve, because candidates are scoped to
+  the club, not the formation.
 - **ebfu.net fallback and team names.** Aliases learned by the import are bfu-tournaments.com
   aliases. A match that only ebfu.net could provide resolves its teams by exact canonical name
   (case-insensitive), or by aliases from earlier ebfu-sourced matches.

@@ -36,11 +36,11 @@ Web app that scrapes starting lineups from the Bulgarian Football Union (BFU) si
 - **`@Column(length=...)` must match migration DDL**: Hibernate schema validation compares declared length to the DB column. Always set `length` on `@Column` to match the `VARCHAR(N)` in the SQL migration (e.g. `logo_url VARCHAR(512)` → `@Column(length = 512)`).
 
 ## Migration Conventions
-- Single file `V1__create_teams.sql` holds the full initial schema (keep appending until first production deployment)
+- `V1__create_teams.sql` holds the initial schema and is deployed to production — **never edit V1 or any other applied migration**. Every schema change goes in a new `V<N>__description.sql` file (next free number). Flyway applies it on startup (`migrate-at-start=true`)
 - Table order must respect foreign key dependencies
 - All text columns are UTF-8 and support Bulgarian Cyrillic — DB must be created with `ENCODING 'UTF8'`
 - Roles (`ADMIN`, `USER`) are seeded in the migration
-- `%dev.quarkus.flyway.clean-at-start=true` and `%dev.quarkus.flyway.repair-at-start=true` are set so that local schema edits to V1 don't break startup during development — `clean-at-start` drops and rebuilds the dev DB schema from scratch on every startup (required whenever V1's DDL itself changes, e.g. a new column/table added to an already-applied migration), while `repair-at-start` fixes checksum bookkeeping for cosmetic edits. Because of `clean-at-start`, the docker-compose dev DB is disposable — never store data there you need to keep
+- `%dev.quarkus.flyway.clean-at-start=true` and `%dev.quarkus.flyway.repair-at-start=true` are set so the dev DB is rebuilt from all migrations on every startup — `clean-at-start` drops and re-applies the whole schema (so a new migration that duplicates something already in an earlier one fails in dev, e.g. `already exists`), while `repair-at-start` fixes checksum bookkeeping. Neither protects prod: editing an applied migration there causes a checksum mismatch at startup. Because of `clean-at-start`, the docker-compose dev DB is disposable — never store data there you need to keep
 
 ## Resource / URL Conventions
 - Management resources live at top-level paths: `/teams`, `/competitions`, `/team-formations`, `/participations`

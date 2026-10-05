@@ -53,7 +53,7 @@ class InboxResourceTest {
     void adminListRendersPendingReviewsWithCandidates() {
         Mockito.when(inboxService.listPending()).thenReturn(List.of(
                 new ReviewView(1L, "Ivan Ivanov", "Test Team", false,
-                        List.of(new CandidateView(10L, "Ivan Ivanov", new BigDecimal("0.9000"))))));
+                        List.of(new CandidateView(10L, "Ivan Ivanov", null, new BigDecimal("0.9000"))))));
 
         given().when().get("/inbox")
                 .then().statusCode(200)
@@ -64,6 +64,18 @@ class InboxResourceTest {
                 .body(containsString("hx-post=\"/inbox/1/confirm-new\""))
                 .body(containsString("hx-indicator=\"#resolve-1-10\""))
                 .body(containsString("hx-indicator=\"#confirm-new-1\""));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void adminListLabelsCandidateFromOtherClub() {
+        Mockito.when(inboxService.listPending()).thenReturn(List.of(
+                new ReviewView(3L, "Petar Petrov", "New Club", false,
+                        List.of(new CandidateView(11L, "Petar Petrov", "Old Club", new BigDecimal("1.0000"))))));
+
+        given().when().get("/inbox")
+                .then().statusCode(200)
+                .body(containsString("Petar Petrov · от Old Club"));
     }
 
     @Test

@@ -17,17 +17,21 @@ import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Resolves a raw player name scraped under a given team to an existing {@link Player}, scoped to
  * players who have actually appeared for that team so unrelated same-name players elsewhere don't
  * compete as candidates. Never guesses: a confident single match auto-resolves and is remembered
  * as a {@link PlayerAlias}; anything less certain is queued as an {@link AmbiguityReview} for an
- * admin to decide.
+ * admin to decide. Reviews additionally list close name matches from other clubs (transfers), but
+ * those are never auto-resolved.
  */
 @ApplicationScoped
 public class PlayerMatchingService {
@@ -39,6 +43,8 @@ public class PlayerMatchingService {
     static final double EMBEDDING_MIN_SCORE = 0.3;
     static final double EMBEDDING_AMBIGUITY_MARGIN = 0.05;
     static final int MAX_CANDIDATES = 5;
+    static final double OTHER_CLUB_MIN_SCORE = 0.5;
+    static final int MAX_OTHER_CLUB_CANDIDATES = 3;
 
     @Inject
     EntityManager em;
@@ -82,7 +88,8 @@ public class PlayerMatchingService {
             return new MatchResult(resolved, null);
         }
 
-        List<Candidate> candidatesForReview = mergeCandidates(trigramCandidates, embeddingCandidates);
+        List<Candidate> candidatesForReview = new ArrayList<>(mergeCandidates(trigramCandidates, embeddingCandidates));
+        candidatesForReview.addAll(findOtherClubCandidates(rawName, teamId));
         return new MatchResult(null, queueForReview(rawName, teamId, source, candidatesForReview));
     }
 
@@ -128,6 +135,65 @@ public class PlayerMatchingService {
         return rows.stream()
                 .map(row -> new Candidate(((Number) row[0]).longValue(), ((Number) row[1]).doubleValue()))
                 .toList();
+    }
+
+    // Review-only, never used for auto-resolve: players who never appeared for this team but whose
+    // name is a close trigram match, so a transfer from another club can be linked to the existing
+    // Player instead of creating a duplicate. Higher floor than findCandidates since the pool is
+    // the whole players table, where same-name strangers are common.
+    @SuppressWarnings("unchecked")
+    private List<Candidate> findOtherClubCandidates(String rawName, Long teamId) {
+        Query query = em.createNativeQuery("""
+                SELECT p.id, similarity(p.names, :rawName) AS score
+                FROM players p
+                WHERE p.id NOT IN (
+                    SELECT pa.player_id
+                    FROM player_appearances pa
+                    JOIN participations part ON pa.participation_id = part.id
+                    JOIN team_formations tf ON part.team_formation_id = tf.id
+                    WHERE tf.team_id = :teamId
+                )
+                AND p.names % :rawName
+                AND similarity(p.names, :rawName) >= :minScore
+                ORDER BY score DESC, p.id ASC
+                LIMIT :maxCandidates
+                """);
+        query.setParameter("rawName", rawName);
+        query.setParameter("teamId", teamId);
+        query.setParameter("minScore", OTHER_CLUB_MIN_SCORE);
+        query.setParameter("maxCandidates", MAX_OTHER_CLUB_CANDIDATES);
+
+        List<Object[]> rows = query.getResultList();
+        return rows.stream()
+                .map(row -> new Candidate(((Number) row[0]).longValue(), ((Number) row[1]).doubleValue()))
+                .toList();
+    }
+
+    public record LatestClub(Long teamId, String teamName) {
+    }
+
+    // The team of each player's most recent appearance, for labelling candidates from other clubs.
+    // Players with no appearances are simply absent from the map.
+    @SuppressWarnings("unchecked")
+    public Map<Long, LatestClub> latestClubs(Collection<Long> playerIds) {
+        if (playerIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT DISTINCT ON (pa.player_id) pa.player_id, t.id, t.name
+                FROM player_appearances pa
+                JOIN matches m ON pa.match_id = m.id
+                JOIN participations part ON pa.participation_id = part.id
+                JOIN team_formations tf ON part.team_formation_id = tf.id
+                JOIN teams t ON tf.team_id = t.id
+                WHERE pa.player_id IN (:playerIds)
+                ORDER BY pa.player_id, m.date DESC, m.id DESC
+                """)
+                .setParameter("playerIds", playerIds)
+                .getResultList();
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> new LatestClub(((Number) row[1]).longValue(), (String) row[2])));
     }
 
     // Independent of the trigram floor above -- scores the same team roster by cosine similarity

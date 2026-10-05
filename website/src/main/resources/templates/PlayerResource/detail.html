@@ -9,6 +9,9 @@
     article { max-width: 60rem; margin-inline: auto; }
     article header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
     .events { font-size: 0.85rem; color: var(--pico-muted-color); }
+    .error { color: var(--pico-del-color); }
+    .merge-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .merge-row form { margin: 0; }
 {/styles}
 
 {#main}
@@ -23,6 +26,10 @@
             <a href="/players/{player.id}/edit" role="button" class="secondary">Редактирай</a>
             {/if}
         </header>
+
+        {#if error}
+        <p class="error">{error}</p>
+        {/if}
 
         {#if timeline.isEmpty}
         <p>Няма записани мачове за този играч.</p>
@@ -55,6 +62,23 @@
                 {/for}
             </tbody>
         </table>
+        {/if}
+
+        {#if isAdmin && !mergeCandidates.isEmpty}
+        <details>
+            <summary>Възможни дубликати ({mergeCandidates.size})</summary>
+            <p><small>Обединяването прехвърля мачовете и псевдонимите на дубликата към {player.names} и изтрива дубликата. Действието е необратимо.</small></p>
+            {#for c in mergeCandidates}
+            <div class="merge-row">
+                <span><a href="/players/{c.playerId}">{c.names}</a>{#if c.latestClub} · {c.latestClub}{/if}</span>
+                <form method="post" action="/players/{player.id}/merge"
+                      onsubmit="return confirm('Обединяване на дубликата в този играч? Действието е необратимо.');">
+                    <input type="hidden" name="duplicateId" value="{c.playerId}">
+                    <button type="submit" class="outline secondary">Обедини тук</button>
+                </form>
+            </div>
+            {/for}
+        </details>
         {/if}
     </article>
 </div>

@@ -245,4 +245,29 @@ class PlayerMatchingServiceTest {
                 AmbiguityCandidate.count("ambiguityReview.id", result.pendingReview().id));
         assertEquals(2, candidateCount);
     }
+
+    @Test
+    void exactNameFromOtherClubIsOfferedForReviewButNeverAutoResolved() {
+        Long transferredId = createPlayerWithAppearance("Transfer Testov");
+        TeamFormationFixtures.Ids newClub = QuarkusTransaction.requiringNew().call(() ->
+                TeamFormationFixtures.create("Matching New Club", "Other City", FormationType.U15, "Matching New League"));
+        try {
+            MatchResult result = matchingService.resolve("Transfer Testov", newClub.teamId(), ExternalRefSource.BFU_TOURNAMENTS);
+
+            assertTrue(!result.isResolved());
+            List<Long> candidatePlayerIds = QuarkusTransaction.requiringNew().call(() ->
+                    AmbiguityCandidate.<AmbiguityCandidate>find("ambiguityReview.id", result.pendingReview().id).list()
+                            .stream().map(c -> c.player.id).toList());
+            assertEquals(List.of(transferredId), candidatePlayerIds);
+            String latestClub = QuarkusTransaction.requiringNew().call(() ->
+                    matchingService.latestClubs(List.of(transferredId)).get(transferredId).teamName());
+            assertEquals("Matching Test Team", latestClub);
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> {
+                AmbiguityCandidate.delete("player.id", transferredId);
+                AmbiguityReview.delete("team.id", newClub.teamId());
+                TeamFormationFixtures.delete(newClub);
+            });
+        }
+    }
 }

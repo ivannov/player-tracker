@@ -40,7 +40,7 @@
                         <form hx-post="/inbox/{review.id}/resolve" hx-target="#inbox-list" hx-swap="outerHTML"
                               hx-indicator="#resolve-{review.id}-{candidate.playerId}" style="margin:0;">
                             <input type="hidden" name="playerId" value="{candidate.playerId}">
-                            <button type="submit" class="outline" id="resolve-{review.id}-{candidate.playerId}">{candidate.playerNames} ({candidate.score})</button>
+                            <button type="submit" class="outline" id="resolve-{review.id}-{candidate.playerId}">{candidate.playerNames}{#if candidate.otherClub} · от {candidate.otherClub}{/if} ({candidate.score})</button>
                         </form>
                         {/for}
                         <form hx-post="/inbox/{review.id}/confirm-new" hx-target="#inbox-list" hx-swap="outerHTML"

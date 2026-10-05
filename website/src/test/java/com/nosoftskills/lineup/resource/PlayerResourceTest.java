@@ -1,12 +1,14 @@
 package com.nosoftskills.lineup.resource;
 
 import com.nosoftskills.lineup.model.Competition;
+import com.nosoftskills.lineup.model.ExternalRefSource;
 import com.nosoftskills.lineup.model.FormationType;
 import com.nosoftskills.lineup.model.Match;
 import com.nosoftskills.lineup.model.MatchEvent;
 import com.nosoftskills.lineup.model.MatchEventType;
 import com.nosoftskills.lineup.model.Participation;
 import com.nosoftskills.lineup.model.Player;
+import com.nosoftskills.lineup.model.PlayerAlias;
 import com.nosoftskills.lineup.model.PlayerAppearance;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.model.TeamFormation;
@@ -24,6 +26,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class PlayerResourceTest {
@@ -327,6 +332,140 @@ class PlayerResourceTest {
                 TeamFormationFixtures.delete(rivalFixture);
             });
         }
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void detailOffersSimilarlyNamedPlayersForMergeToAdmin() {
+        createdId = insertPlayer("Merge Suggest Player");
+        Long similarId = insertPlayer("Merge Suggest Player");
+        try {
+            given().when().get("/players/" + createdId)
+                    .then().statusCode(200)
+                    .body(containsString("action=\"/players/" + createdId + "/merge\""),
+                            containsString("value=\"" + similarId + "\""));
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> Player.deleteById(similarId));
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "user", roles = {"USER"})
+    void mergeForbiddenForUser() {
+        createdId = insertPlayer("Merge Forbidden Player");
+        given().redirects().follow(false)
+                .contentType(ContentType.URLENC)
+                .formParam("duplicateId", createdId)
+                .when().post("/players/" + createdId + "/merge")
+                .then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void mergeMovesAppearancesAndAliasesToKeptPlayerAndDeletesDuplicate() {
+        MergeFixture f = createMergeFixture();
+        try {
+            given().redirects().follow(false)
+                    .contentType(ContentType.URLENC)
+                    .formParam("duplicateId", f.duplicateId())
+                    .when().post("/players/" + f.keepId() + "/merge")
+                    .then().statusCode(303)
+                    .header("Location", endsWith("/players/" + f.keepId()));
+
+            QuarkusTransaction.requiringNew().run(() -> {
+                assertNull(Player.findById(f.duplicateId()));
+                assertEquals(f.keepId(), PlayerAppearance.<PlayerAppearance>findById(f.appearanceId()).player.id);
+                assertEquals(f.keepId(), PlayerAlias.<PlayerAlias>findById(f.aliasId()).player.id);
+            });
+        } finally {
+            deleteMergeFixture(f);
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = {"ADMIN"})
+    void mergeRefusedWhenBothPlayedSameMatch() {
+        MergeFixture f = createMergeFixture();
+        Long keepAppearanceId = QuarkusTransaction.requiringNew().call(() -> {
+            PlayerAppearance pa = new PlayerAppearance();
+            pa.player = Player.findById(f.keepId());
+            pa.match = Match.findById(f.matchId());
+            pa.participation = Participation.findById(f.participationId());
+            pa.starter = true;
+            pa.persist();
+            return pa.id;
+        });
+        try {
+            given().redirects().follow(false)
+                    .contentType(ContentType.URLENC)
+                    .formParam("duplicateId", f.duplicateId())
+                    .when().post("/players/" + f.keepId() + "/merge")
+                    .then().statusCode(409)
+                    .body(containsString("един и същи мач"));
+
+            QuarkusTransaction.requiringNew().run(() -> assertNotNull(Player.findById(f.duplicateId())));
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> PlayerAppearance.deleteById(keepAppearanceId));
+            deleteMergeFixture(f);
+        }
+    }
+
+    private record MergeFixture(TeamFormationFixtures.Ids team, Long participationId, Long matchId,
+            Long keepId, Long duplicateId, Long appearanceId, Long aliasId) {
+    }
+
+    private MergeFixture createMergeFixture() {
+        return QuarkusTransaction.requiringNew().call(() -> {
+            TeamFormationFixtures.Ids team = TeamFormationFixtures.create(
+                    "Merge Test Team", "Merge City", FormationType.U15, "Merge League");
+
+            Participation participation = new Participation();
+            participation.teamFormation = TeamFormation.findById(team.teamFormationId());
+            participation.competition = Competition.findById(team.competitionId());
+            participation.season = "2024/2025";
+            participation.persist();
+
+            Match match = new Match();
+            match.homeTeam = participation;
+            match.awayTeam = participation;
+            match.date = LocalDate.of(2024, 9, 1);
+            match.persist();
+
+            Player keep = new Player();
+            keep.names = "Merge Keep Player";
+            keep.persist();
+            Player duplicate = new Player();
+            duplicate.names = "Merge Keep Player";
+            duplicate.persist();
+
+            PlayerAppearance appearance = new PlayerAppearance();
+            appearance.player = duplicate;
+            appearance.match = match;
+            appearance.participation = participation;
+            appearance.starter = true;
+            appearance.persist();
+
+            PlayerAlias alias = new PlayerAlias();
+            alias.player = duplicate;
+            alias.source = ExternalRefSource.BFU_TOURNAMENTS;
+            alias.rawName = "Merge Keep Player";
+            alias.team = Team.findById(team.teamId());
+            alias.persist();
+
+            return new MergeFixture(team, participation.id, match.id, keep.id, duplicate.id, appearance.id, alias.id);
+        });
+    }
+
+    private void deleteMergeFixture(MergeFixture f) {
+        QuarkusTransaction.requiringNew().run(() -> {
+            PlayerAlias.deleteById(f.aliasId());
+            PlayerAppearance.deleteById(f.appearanceId());
+            Match.deleteById(f.matchId());
+            Participation.deleteById(f.participationId());
+            Player.deleteById(f.duplicateId());
+            Player.deleteById(f.keepId());
+            TeamFormationFixtures.delete(f.team());
+        });
     }
 
     private Long insertPlayer(String names) {
