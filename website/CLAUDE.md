@@ -36,7 +36,7 @@ This project follows the [AI Unified Process](https://unifiedprocess.ai) (plugin
 1. **Spec first.** Run `/use-case-spec` to update an existing `UC-XXX` or add a new one. A new use case also needs `/use-case-diagram`. A data change also needs `/entity-model`. A new use case starts as `Draft`.
 2. Run the spec checks (below), show the user the spec diff, and **stop for review**. Implement only once the user approves. Never change a `**Status:**` line yourself; propose the new value instead.
 3. Implement against the spec. Every schema change needs a new Flyway migration and the matching `docs/entity_model.md` update in the same change.
-4. Add a Backlog task (see the Backlog section) whose description names the use case(s), and whose acceptance criteria map to spec steps, flows, and rules.
+4. Track the change in a Backlog task (see the Backlog section) whose description names the use case(s), and whose acceptance criteria map 1:1 to spec steps, flows, and rules (`UC-XXX A3: …`). Create it at the spec-review stop (status `To Do`), move it to `In Progress` on approval, check each criterion when its test passes, and set `Done` with a final summary at the end. `/change` runs this whole loop.
 
 ### Bug fix
 Decide first whether the code or the spec is wrong:
@@ -116,31 +116,10 @@ This project records domain-specific traps and validated fixes in `./experiences
 - **After resolving a multi-step debugging loop, an unexpected trap, or a domain-specific workaround**, record it with `python3 manage-experience/scripts/experiences.py create-experience --domain <domain-id> --title ... --description ... --keywords ... --complexity ... --objective ... --trap ... --insight ... --validated-path ... --checklist-item ...` — this writes a new playbook and updates `experiences/INDEX.md` automatically.
 - Existing domains: `quarkus-hibernate`, `qute-templates`, `quarkus-testing`. Add new domain categories to `experiences/INDEX.md`'s frontmatter `categories` list as new problem areas emerge (e.g. `bfu-scraping`, `flyway-migrations`).
 
-<!-- BACKLOG.MD MCP GUIDELINES START -->
-
-<CRITICAL_INSTRUCTION>
-
-## BACKLOG WORKFLOW INSTRUCTIONS
-
-This project uses Backlog.md MCP for all task and project management activities.
-
-**CRITICAL GUIDANCE**
-
-- If your client supports MCP resources, read `backlog://workflow/overview` to understand when and how to use Backlog for this project.
-- If your client only supports tools or the above request fails, call `backlog.get_backlog_instructions()` to load the tool-oriented overview. Use the `instruction` selector when you need `task-creation`, `task-execution`, or `task-finalization`.
-
-- **First time working here?** Read the overview resource IMMEDIATELY to learn the workflow
-- **Already familiar?** You should have the overview cached ("## Backlog.md Overview (MCP)")
-- **When to read it**: BEFORE creating tasks, or when you're unsure whether to track work
-
-These guides cover:
-- Decision framework for when to create tasks
-- Search-first workflow to avoid duplicates
-- Links to detailed guides for task creation, execution, and finalization
-- MCP tools reference
-
-You MUST read the overview resource to understand the complete workflow. The information is NOT summarized here.
-
-</CRITICAL_INSTRUCTION>
-
-<!-- BACKLOG.MD MCP GUIDELINES END -->
+## Backlog
+Work is tracked with the `backlog` CLI (Backlog.md, task prefix `LT`, statuses `To Do` → `In Progress` → `Done`). There is no Backlog MCP server.
+- Read `backlog instructions overview` before creating or working a task, and the `task-creation`, `task-execution`, or `task-finalization` guide before that step.
+- Search before creating: `backlog search "<query>" --plain`. Read with `backlog task view LT-NNN --plain`.
+- Write only through `backlog task create` / `backlog task edit`. Never edit `.backlog/` files by hand.
+- `autoCommit` must stay `false` (`backlog config get autoCommit`): the CLI must never commit, since the user commits `.backlog/` together with the spec and code changes.
+- Each task covers one AIUP change. Its acceptance criteria are the qualified spec ids it changes, so a criterion, a test `@DisplayName`, and a spec element share the same id.

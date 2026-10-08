@@ -3,11 +3,15 @@ package com.nosoftskills.lineup.inbox;
 import com.nosoftskills.lineup.matching.PlayerMatchingService;
 import com.nosoftskills.lineup.matching.TeamResolutionService;
 import com.nosoftskills.lineup.model.AmbiguityCandidate;
+import com.nosoftskills.lineup.model.AmbiguityOccurrence;
+import com.nosoftskills.lineup.model.AmbiguityOccurrenceEvent;
 import com.nosoftskills.lineup.model.AmbiguityReview;
 import com.nosoftskills.lineup.model.AmbiguityReviewStatus;
 import com.nosoftskills.lineup.model.AmbiguityReviewType;
 import com.nosoftskills.lineup.model.ExternalRefSource;
+import com.nosoftskills.lineup.model.MatchEvent;
 import com.nosoftskills.lineup.model.Player;
+import com.nosoftskills.lineup.model.PlayerAppearance;
 import com.nosoftskills.lineup.model.Team;
 import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -91,6 +95,7 @@ public class AmbiguityInboxService {
 
         Player resolved = playerMatchingService.writeAlias(review.source, review.rawName, review.team.id, player);
         markResolved(review, resolved);
+        addToLineups(review, resolved);
         return resolved;
     }
 
@@ -119,7 +124,9 @@ public class AmbiguityInboxService {
 
         QuarkusTransaction.requiringNew().run(() -> {
             AmbiguityReview review = AmbiguityReview.findById(reviewId);
-            markResolved(review, Player.findById(resolved.id));
+            Player player = Player.findById(resolved.id);
+            markResolved(review, player);
+            addToLineups(review, player);
         });
         return resolved;
     }
@@ -171,6 +178,41 @@ public class AmbiguityInboxService {
         review.resolvedPlayer = resolved;
         review.resolvedAt = LocalDateTime.now();
         review.resolvedBy = currentUser.username();
+    }
+
+    // UC-011 BR-006: Resolving a player item adds the player to the lineup of every saved match
+    // the name was raised in, from the details kept there; an existing lineup entry is kept and
+    // only the goals and cards not yet stored for it are added (UC-009 BR-006).
+    private void addToLineups(AmbiguityReview review, Player player) {
+        List<AmbiguityOccurrence> occurrences = AmbiguityOccurrence.list("ambiguityReview.id", review.id);
+        for (AmbiguityOccurrence occurrence : occurrences) {
+            PlayerAppearance appearance = PlayerAppearance.<PlayerAppearance>find(
+                    "player.id = ?1 and match.id = ?2", player.id, occurrence.match.id).firstResult();
+            if (appearance == null) {
+                appearance = new PlayerAppearance();
+                appearance.player = player;
+                appearance.match = occurrence.match;
+                appearance.participation = occurrence.participation;
+                appearance.starter = occurrence.starter;
+                appearance.number = occurrence.number;
+                appearance.substitutedInMinute = occurrence.substitutedInMinute;
+                appearance.substitutedOutMinute = occurrence.substitutedOutMinute;
+                appearance.persist();
+            }
+
+            List<AmbiguityOccurrenceEvent> events = AmbiguityOccurrenceEvent.list("ambiguityOccurrence.id", occurrence.id);
+            for (AmbiguityOccurrenceEvent kept : events) {
+                boolean exists = MatchEvent.count("playerAppearance.id = ?1 and type = ?2 and minute = ?3",
+                        appearance.id, kept.type, kept.minute) > 0;
+                if (exists) continue;
+
+                MatchEvent event = new MatchEvent();
+                event.playerAppearance = appearance;
+                event.type = kept.type;
+                event.minute = kept.minute;
+                event.persist();
+            }
+        }
     }
 
     private void markResolvedTeam(AmbiguityReview review, Team resolved) {

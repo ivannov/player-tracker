@@ -8,7 +8,7 @@
 **Secondary Actors:** BFU Tournaments Site, EBFU Site, Embedding Service  
 **Goal:** Load all matches a competition played on a given date — scores, lineups, substitutions, goals and cards — from the official sites into the tracker, after previewing what will be saved.  
 **Trigger:** The Administrator chooses "extract for a date" from the extraction menu.  
-**Status:** Implemented  
+**Status:** Tested  
 
 ## Preconditions
 
@@ -26,7 +26,7 @@
 7. Administrator proceeds to the summary.
 8. System shows the summary of matches that will be saved and matches that will be skipped.
 9. Administrator confirms.
-10. System extracts the same data again and, for every match whose teams were both identified, saves the match, the lineup entries of identified players, their substitution minutes and their goals and cards, and remembers the site's team names.
+10. System extracts the same data again and, for every match whose teams were both identified, saves the match, the lineup entries of identified players, their substitution minutes and their goals and cards, keeps the lineup details of unclear names with their inbox items, and remembers the site's team names.
 11. System shows the match list.
 
 ## Alternative Flows
@@ -101,7 +101,7 @@
 
 - Every match of the date whose teams were both identified exists with its score.
 - Each identified player has one lineup entry for the match with starter flag, shirt number, substitution minutes and events.
-- Unclear player names and conflicting team names are waiting in the inbox (UC-011) and linked to the match.
+- Unclear player names and conflicting team names are waiting in the inbox (UC-011) and linked to the match; each unclear player name carries its lineup details for the match.
 - The site's team names are remembered for the identified teams.
 
 ### Failure Postconditions
@@ -145,3 +145,7 @@ A match whose data cannot be read is skipped; the other matches of the date are 
 ### BR-009: The preview does not save matches
 
 The preview saves no match, lineup entry or event, but names identified or found unclear during the preview are already remembered or placed in the inbox.
+
+### BR-010: Unclear names keep their lineup details
+
+For every saved match, each unclear player name that is pending in the inbox keeps its side, starter flag, shirt number, substitution minutes, goals and cards for that match with its inbox item, so that resolving the item adds the lineup entry (UC-011 BR-006). Extracting the same match again keeps the details already kept and adds only goals and cards not yet kept, as for lineup entries (BR-006). The preview keeps no lineup details (BR-009).

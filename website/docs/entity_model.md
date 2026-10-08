@@ -22,6 +22,10 @@ erDiagram
     PLAYER |o--o{ AMBIGUITY_REVIEW : "resolves"
     TEAM |o--o{ AMBIGUITY_REVIEW : "resolves"
     AMBIGUITY_REVIEW ||--o{ AMBIGUITY_CANDIDATE : "proposes"
+    AMBIGUITY_REVIEW ||--o{ AMBIGUITY_OCCURRENCE : "keeps lineup details in"
+    MATCH ||--o{ AMBIGUITY_OCCURRENCE : "lists unclear"
+    PARTICIPATION ||--o{ AMBIGUITY_OCCURRENCE : "fields unclear"
+    AMBIGUITY_OCCURRENCE ||--o{ AMBIGUITY_OCCURRENCE_EVENT : "records"
     PLAYER ||--o{ AMBIGUITY_CANDIDATE : "is proposed as"
     USER ||--o{ USER_ROLE : "holds"
     ROLE ||--o{ USER_ROLE : "is granted via"
@@ -265,6 +269,49 @@ A ranked player suggestion for a player inbox item; deleted together with its it
 #### Constraints
 
 - Deleting an AMBIGUITY_REVIEW deletes its AMBIGUITY_CANDIDATE rows; nothing else cascades.
+
+### AMBIGUITY_OCCURRENCE
+
+The lineup details of an unclear player name in one saved match, kept with its inbox item so that resolving the item adds the lineup entry.
+
+| Attribute              | Description                                                       | Data Type | Length/Precision | Validation Rules                            |
+|------------------------|-------------------------------------------------------------------|-----------|------------------|---------------------------------------------|
+| id                     | Unique identifier                                                 | Long      | 19               | Primary Key, Sequence                       |
+| version                | Optimistic locking counter                                        | Integer   | 10               | Not Null                                    |
+| created_at             | Time the row was created                                          | DateTime  | -                | Not Null                                    |
+| last_updated           | Time the row was last changed                                     | DateTime  | -                | Not Null                                    |
+| ambiguity_review_id    | Inbox item the name belongs to                                    | Long      | 19               | Not Null, Foreign Key (AMBIGUITY_REVIEW.id) |
+| match_id               | Match the name was listed in                                      | Long      | 19               | Not Null, Foreign Key (MATCH.id)            |
+| participation_id       | Side the name was listed for; equals the match's home or away side | Long     | 19               | Not Null, Foreign Key (PARTICIPATION.id)    |
+| starter                | Whether the name was listed as a starter                          | Boolean   | 1                | Not Null                                    |
+| number                 | Shirt number                                                      | Integer   | 5                | Optional                                    |
+| substituted_in_minute  | Minute the player came on, between 0 and 130                      | Integer   | 5                | Optional                                    |
+| substituted_out_minute | Minute the player went off, between 0 and 130                     | Integer   | 5                | Optional                                    |
+
+#### Constraints
+
+- An inbox item keeps at most one set of lineup details per match (`ambiguity_review_id`, `match_id` unique).
+- Each substitution minute, when set, lies between 0 and 130.
+- Deleting an AMBIGUITY_REVIEW deletes its AMBIGUITY_OCCURRENCE rows; the rows stay after the item is resolved.
+
+### AMBIGUITY_OCCURRENCE_EVENT
+
+A goal or card read for an unclear player name in one match; deleted together with its occurrence.
+
+| Attribute               | Description                                  | Data Type | Length/Precision | Validation Rules                                                                  |
+|-------------------------|----------------------------------------------|-----------|------------------|-----------------------------------------------------------------------------------|
+| id                      | Unique identifier                            | Long      | 19               | Primary Key, Sequence                                                             |
+| version                 | Optimistic locking counter                   | Integer   | 10               | Not Null                                                                          |
+| created_at              | Time the row was created                     | DateTime  | -                | Not Null                                                                          |
+| last_updated            | Time the row was last changed                | DateTime  | -                | Not Null                                                                          |
+| ambiguity_occurrence_id | Occurrence the event belongs to              | Long      | 19               | Not Null, Foreign Key (AMBIGUITY_OCCURRENCE.id)                                   |
+| type                    | Kind of event                                | String    | 20               | Not Null, Values: GOAL, PENALTY_GOAL, OWN_GOAL, YELLOW_CARD, SECOND_YELLOW_CARD, RED_CARD |
+| minute                  | Minute of the event, between 0 and 130       | Integer   | 5                | Optional                                                                          |
+
+#### Constraints
+
+- `minute`, when set, lies between 0 and 130.
+- Deleting an AMBIGUITY_OCCURRENCE deletes its AMBIGUITY_OCCURRENCE_EVENT rows; nothing else cascades.
 
 ### ROLE
 

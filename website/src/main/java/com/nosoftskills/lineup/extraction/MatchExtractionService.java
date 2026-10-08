@@ -2,6 +2,8 @@ package com.nosoftskills.lineup.extraction;
 
 import com.nosoftskills.lineup.matching.PlayerMatchingService;
 import com.nosoftskills.lineup.matching.TeamResolutionService;
+import com.nosoftskills.lineup.model.AmbiguityOccurrence;
+import com.nosoftskills.lineup.model.AmbiguityOccurrenceEvent;
 import com.nosoftskills.lineup.model.AmbiguityReview;
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.ExternalRefSource;
@@ -123,10 +125,16 @@ public class MatchExtractionService {
             persistSide(match, row.away().participation(), row.awayStarters(), true, appearanceByPlayerId);
             persistSide(match, row.away().participation(), row.awayReserves(), false, appearanceByPlayerId);
 
+            Map<Long, AmbiguityOccurrence> occurrenceByReviewId = new HashMap<>();
+            keepOccurrences(match, row.home().participation(), row.homeStarters(), true, occurrenceByReviewId);
+            keepOccurrences(match, row.home().participation(), row.homeReserves(), false, occurrenceByReviewId);
+            keepOccurrences(match, row.away().participation(), row.awayStarters(), true, occurrenceByReviewId);
+            keepOccurrences(match, row.away().participation(), row.awayReserves(), false, occurrenceByReviewId);
+
             Map<String, PlayerRowResolution> homeByName = byRawName(row.homeStarters(), row.homeReserves());
             Map<String, PlayerRowResolution> awayByName = byRawName(row.awayStarters(), row.awayReserves());
-            persistEvents(row.scrapedMatch().events(), homeByName, awayByName, appearanceByPlayerId);
-            applySubstitutions(row.scrapedMatch().substitutions(), homeByName, awayByName, appearanceByPlayerId);
+            persistEvents(row.scrapedMatch().events(), homeByName, awayByName, appearanceByPlayerId, occurrenceByReviewId);
+            applySubstitutions(row.scrapedMatch().substitutions(), homeByName, awayByName, appearanceByPlayerId, occurrenceByReviewId);
 
             linkPendingReviewsToMatch(match, row);
         }
@@ -274,6 +282,51 @@ public class MatchExtractionService {
         }
     }
 
+    // UC-009 BR-010: For every saved match, a pending unclear name keeps its side, starter flag,
+    // shirt number, substitution minutes, goals and cards with its inbox item; a repeated
+    // extraction reuses the kept details instead of duplicating them.
+    private void keepOccurrences(Match match, Participation participation, List<PlayerRowResolution> entries,
+            boolean starter, Map<Long, AmbiguityOccurrence> occurrenceByReviewId) {
+        for (PlayerRowResolution resolution : entries) {
+            if (resolution.matchResult() == null) continue;
+            AmbiguityReview review = resolution.matchResult().pendingReview();
+            if (review == null) continue;
+
+            AmbiguityOccurrence occurrence = AmbiguityOccurrence.<AmbiguityOccurrence>find(
+                    "ambiguityReview.id = ?1 and match.id = ?2", review.id, match.id).firstResult();
+            if (occurrence == null) {
+                occurrence = new AmbiguityOccurrence();
+                occurrence.ambiguityReview = review;
+                occurrence.match = match;
+                occurrence.participation = participation;
+                occurrence.starter = starter;
+                occurrence.number = (short) resolution.number();
+                occurrence.persist();
+            }
+            occurrenceByReviewId.put(review.id, occurrence);
+        }
+    }
+
+    private AmbiguityOccurrence pendingOccurrence(PlayerRowResolution resolution,
+            Map<Long, AmbiguityOccurrence> occurrenceByReviewId) {
+        if (resolution == null || resolution.matchResult() == null) return null;
+        AmbiguityReview review = resolution.matchResult().pendingReview();
+        return review == null ? null : occurrenceByReviewId.get(review.id);
+    }
+
+    // UC-009 BR-010: Repeated extraction adds only goals and cards not yet kept for the name.
+    private void keepOccurrenceEvent(AmbiguityOccurrence occurrence, MatchEventType type, Short minute) {
+        boolean exists = AmbiguityOccurrenceEvent.count("ambiguityOccurrence.id = ?1 and type = ?2 and minute = ?3",
+                occurrence.id, type, minute) > 0;
+        if (exists) return;
+
+        AmbiguityOccurrenceEvent event = new AmbiguityOccurrenceEvent();
+        event.ambiguityOccurrence = occurrence;
+        event.type = type;
+        event.minute = minute;
+        event.persist();
+    }
+
     private Map<String, PlayerRowResolution> byRawName(List<PlayerRowResolution> starters, List<PlayerRowResolution> reserves) {
         Map<String, PlayerRowResolution> byRawName = new HashMap<>();
         for (PlayerRowResolution resolution : starters) byRawName.put(resolution.rawName(), resolution);
@@ -284,15 +337,22 @@ public class MatchExtractionService {
     // Dedups on (playerAppearance, type, minute) since match_events has no unique constraint of
     // its own -- re-running the same extraction must not double up goals/cards.
     private void persistEvents(List<ScrapedMatchEvent> events, Map<String, PlayerRowResolution> homeByName,
-            Map<String, PlayerRowResolution> awayByName, Map<Long, PlayerAppearance> appearanceByPlayerId) {
+            Map<String, PlayerRowResolution> awayByName, Map<Long, PlayerAppearance> appearanceByPlayerId,
+            Map<Long, AmbiguityOccurrence> occurrenceByReviewId) {
         for (ScrapedMatchEvent scrapedEvent : events) {
             PlayerRowResolution resolution = (scrapedEvent.home() ? homeByName : awayByName).get(scrapedEvent.playerName());
+            MatchEventType type = toMatchEventType(scrapedEvent.type());
+            Short minute = (short) scrapedEvent.minute();
+
+            AmbiguityOccurrence occurrence = pendingOccurrence(resolution, occurrenceByReviewId);
+            if (occurrence != null) {
+                keepOccurrenceEvent(occurrence, type, minute);
+                continue;
+            }
             if (resolution == null || !resolution.isResolved()) continue;
             PlayerAppearance appearance = appearanceByPlayerId.get(resolution.matchResult().resolvedPlayer().id);
             if (appearance == null) continue;
 
-            MatchEventType type = toMatchEventType(scrapedEvent.type());
-            Short minute = (short) scrapedEvent.minute();
             boolean exists = MatchEvent.count("playerAppearance.id = ?1 and type = ?2 and minute = ?3",
                     appearance.id, type, minute) > 0;
             if (exists) continue;
@@ -315,17 +375,27 @@ public class MatchExtractionService {
     }
 
     private void applySubstitutions(List<ScrapedSubstitution> substitutions, Map<String, PlayerRowResolution> homeByName,
-            Map<String, PlayerRowResolution> awayByName, Map<Long, PlayerAppearance> appearanceByPlayerId) {
+            Map<String, PlayerRowResolution> awayByName, Map<Long, PlayerAppearance> appearanceByPlayerId,
+            Map<Long, AmbiguityOccurrence> occurrenceByReviewId) {
         for (ScrapedSubstitution substitution : substitutions) {
             Map<String, PlayerRowResolution> sideByName = substitution.home() ? homeByName : awayByName;
             Short minute = (short) substitution.minute();
-            applySubstitutionMinute(sideByName.get(substitution.playerInName()), appearanceByPlayerId, minute, true);
-            applySubstitutionMinute(sideByName.get(substitution.playerOutName()), appearanceByPlayerId, minute, false);
+            applySubstitutionMinute(sideByName.get(substitution.playerInName()), appearanceByPlayerId, occurrenceByReviewId, minute, true);
+            applySubstitutionMinute(sideByName.get(substitution.playerOutName()), appearanceByPlayerId, occurrenceByReviewId, minute, false);
         }
     }
 
     private void applySubstitutionMinute(PlayerRowResolution resolution, Map<Long, PlayerAppearance> appearanceByPlayerId,
-            Short minute, boolean comingIn) {
+            Map<Long, AmbiguityOccurrence> occurrenceByReviewId, Short minute, boolean comingIn) {
+        AmbiguityOccurrence occurrence = pendingOccurrence(resolution, occurrenceByReviewId);
+        if (occurrence != null) {
+            if (comingIn) {
+                occurrence.substitutedInMinute = minute;
+            } else {
+                occurrence.substitutedOutMinute = minute;
+            }
+            return;
+        }
         if (resolution == null || !resolution.isResolved()) return;
         PlayerAppearance appearance = appearanceByPlayerId.get(resolution.matchResult().resolvedPlayer().id);
         if (appearance == null) return;

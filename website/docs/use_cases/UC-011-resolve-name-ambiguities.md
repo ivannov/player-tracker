@@ -5,9 +5,9 @@
 **Use Case ID:** UC-011  
 **Use Case Name:** Resolve Name Ambiguities  
 **Primary Actor:** Administrator  
-**Goal:** Decide which player or team an unclear scraped name refers to, so that future extractions identify it automatically.  
+**Goal:** Decide which player or team an unclear scraped name refers to, so that the player appears in the lineups the name was left out of and future extractions identify the name automatically.  
 **Trigger:** The Administrator opens the inbox, typically after the navigation shows a count of pending items.  
-**Status:** Implemented  
+**Status:** Tested  
 
 ## Preconditions
 
@@ -19,7 +19,7 @@
 1. Administrator opens the inbox.
 2. System lists the pending items, oldest first, each with the scraped name and the team it was scraped under; player items show ranked candidate players with their score and, when different from that team, the candidate's latest club.
 3. Administrator picks the candidate player the name refers to.
-4. System remembers the name as that player's name for the source and team, marks the item resolved with the Administrator's name and the time, and refreshes the list.
+4. System remembers the name as that player's name for the source and team, adds the player to the lineup of every match the name was raised in, marks the item resolved with the Administrator's name and the time, and refreshes the list.
 
 ## Alternative Flows
 
@@ -29,7 +29,7 @@
 **Flow:**
 
 1. Administrator confirms the name as a new player.
-2. System creates a player with the scraped name, remembers the name for the source and team, marks the item resolved and refreshes the list.
+2. System creates a player with the scraped name, remembers the name for the source and team, adds the player to the lineup of every match the name was raised in, marks the item resolved and refreshes the list.
 3. Use case ends.
 
 ### A2: Team name conflict
@@ -63,10 +63,11 @@
 
 - The item is resolved with the chosen player or team, the resolver and the time.
 - The scraped name is remembered, so the next extraction identifies it automatically.
+- For a player item, the player has a lineup entry with its goals and cards in every match the name was raised in.
 
 ### Failure Postconditions
 
-- The item stays pending and no name mapping is changed.
+- The item stays pending, no name mapping is changed and no lineup entry or event is added.
 
 ## Business Rules
 
@@ -90,4 +91,8 @@ Every resolution records who resolved the item and when.
 
 The navigation shows the number of pending items to Administrators; other signed-in users see no count.
 
-> Note: resolving an item does not retroactively add the player to the lineup of the match it was raised in; the player appears in lineups only from the next extraction of that match onward. A "dismissed" state exists in the data model but no screen sets it.
+### BR-006: Resolution completes the lineups
+
+Resolving a player item adds the chosen or new player to the lineup of every saved match the name was raised in while the item was pending (UC-009 BR-010), with the starter flag, shirt number, substitution minutes, goals and cards read for the name in that match. When the player already has a lineup entry in such a match, that entry is kept and only the goals and cards not yet stored for it are added (UC-009 BR-006). A match for which no lineup details were kept with the item gets no lineup entry; the player appears there from the next extraction of that match.
+
+> Note: A "dismissed" state exists in the data model but no screen sets it.

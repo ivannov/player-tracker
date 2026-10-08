@@ -1,6 +1,8 @@
 package com.nosoftskills.lineup.extraction;
 
 import com.nosoftskills.lineup.matching.OllamaEmbeddingClient;
+import com.nosoftskills.lineup.model.AmbiguityOccurrence;
+import com.nosoftskills.lineup.model.AmbiguityOccurrenceEvent;
 import com.nosoftskills.lineup.model.AmbiguityReview;
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.model.ExternalRefSource;
@@ -22,6 +24,7 @@ import com.nosoftskills.lineup.scraping.BfuMatchEvent;
 import com.nosoftskills.lineup.scraping.BfuMatchEventType;
 import com.nosoftskills.lineup.scraping.BfuMatchScraperService;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
+import com.nosoftskills.lineup.scraping.BfuSubstitution;
 import com.nosoftskills.lineup.scraping.BfuTeamLineup;
 import com.nosoftskills.lineup.scraping.EbfuLineupEntry;
 import com.nosoftskills.lineup.scraping.EbfuMatchLineup;
@@ -34,6 +37,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -190,6 +194,77 @@ class MatchExtractionServiceTest {
                 List.of(new BfuLineupEntry(7, "Georgi Ivanov")), List.of());
         List<BfuMatchEvent> events = List.of(new BfuMatchEvent(true, BfuMatchEventType.GOAL, 55, "Ivan Petrov"));
         return new BfuMatchData(home, away, (short) 2, (short) 0, events, List.of());
+    }
+
+    // "Georgi Ivanov" starts and goes off at 70 for "Stoyan Dimov" from the bench; both are unknown
+    // to the away team's roster, so both stay unclear.
+    private BfuMatchData bfuMatchDataWithUnclearAwayPlayerDetails() {
+        BfuTeamLineup home = new BfuTeamLineup(HOME_NAME,
+                List.of(new BfuLineupEntry(9, "Ivan Petrov")), List.of());
+        BfuTeamLineup away = new BfuTeamLineup(AWAY_NAME,
+                List.of(new BfuLineupEntry(7, "Georgi Ivanov")), List.of(new BfuLineupEntry(15, "Stoyan Dimov")));
+        List<BfuMatchEvent> events = List.of(new BfuMatchEvent(false, BfuMatchEventType.YELLOW_CARD, 30, "Georgi Ivanov"));
+        List<BfuSubstitution> substitutions = List.of(new BfuSubstitution(false, 70, "Stoyan Dimov", "Georgi Ivanov"));
+        return new BfuMatchData(home, away, (short) 1, (short) 0, events, substitutions);
+    }
+
+    private AmbiguityOccurrence findOccurrence(String rawName) {
+        return AmbiguityOccurrence.<AmbiguityOccurrence>find(
+                "ambiguityReview.rawName = ?1 and ambiguityReview.team.id = ?2", rawName, awayTeamId).firstResult();
+    }
+
+    @Test
+    @DisplayName("UC-009 BR-010: confirm keeps side, starter flag, number, substitution minutes and cards of unclear names")
+    void confirmKeepsLineupDetailsOfUnclearNames() throws Exception {
+        Mockito.when(bfuMatchScraperService.extractMatch(MATCH_URL)).thenReturn(bfuMatchDataWithUnclearAwayPlayerDetails());
+
+        extractionService.confirm(request);
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            AmbiguityOccurrence starter = findOccurrence("Georgi Ivanov");
+            assertNotNull(starter);
+            assertEquals(awayParticipationId, starter.participation.id);
+            assertTrue(starter.starter);
+            assertEquals((short) 7, starter.number);
+            assertNull(starter.substitutedInMinute);
+            assertEquals((short) 70, starter.substitutedOutMinute);
+            assertEquals(1, AmbiguityOccurrenceEvent.count("ambiguityOccurrence.id = ?1 and type = ?2 and minute = ?3",
+                    starter.id, MatchEventType.YELLOW_CARD, (short) 30));
+
+            AmbiguityOccurrence reserve = findOccurrence("Stoyan Dimov");
+            assertNotNull(reserve);
+            assertFalse(reserve.starter);
+            assertEquals((short) 15, reserve.number);
+            assertEquals((short) 70, reserve.substitutedInMinute);
+        });
+    }
+
+    @Test
+    @DisplayName("UC-009 BR-010: repeated extraction keeps the kept details and does not duplicate them")
+    void confirmRerunDoesNotDuplicateKeptDetails() throws Exception {
+        Mockito.when(bfuMatchScraperService.extractMatch(MATCH_URL)).thenReturn(bfuMatchDataWithUnclearAwayPlayerDetails());
+
+        extractionService.confirm(request);
+        extractionService.confirm(request);
+
+        QuarkusTransaction.requiringNew().run(() -> {
+            assertEquals(1, AmbiguityOccurrence.count("ambiguityReview.rawName = ?1 and ambiguityReview.team.id = ?2",
+                    "Georgi Ivanov", awayTeamId));
+            AmbiguityOccurrence occurrence = findOccurrence("Georgi Ivanov");
+            assertEquals(1, AmbiguityOccurrenceEvent.count("ambiguityOccurrence.id", occurrence.id));
+        });
+    }
+
+    @Test
+    @DisplayName("UC-009 BR-010: the preview keeps no lineup details")
+    void previewKeepsNoLineupDetails() throws Exception {
+        Mockito.when(bfuMatchScraperService.extractMatch(MATCH_URL)).thenReturn(bfuMatchDataWithUnclearAwayPlayerDetails());
+
+        extractionService.preview(request);
+
+        long kept = QuarkusTransaction.requiringNew().call(() ->
+                AmbiguityOccurrence.count("ambiguityReview.team.id", awayTeamId));
+        assertEquals(0, kept);
     }
 
     @Test
