@@ -27,7 +27,7 @@ src/main/java/com/nosoftskills/lineup/
   inbox/         Ambiguity inbox (/inbox)
   security/      CurrentUser helper
 src/main/resources/
-  db/migration/V1__create_teams.sql   the whole schema + seeded roles and admin user
+  db/migration/                       Flyway migrations: V1 initial schema + seeded roles and admin user, V2+ later changes
   templates/                          Qute templates, one folder per resource
 ```
 
@@ -51,9 +51,10 @@ similarity only and `PlayerEmbeddingSyncJob` logs a warning every minute. Overri
 ### The dev database is disposable
 
 `%dev.quarkus.flyway.clean-at-start=true` **drops and rebuilds the schema every time the app
-starts**. That lets you edit `V1__create_teams.sql` freely during development. It also means
-anything you import in dev disappears when the app restarts. Never keep data you care about in the
-dev DB. For a persistent instance, use the [local production stack](install-and-update.md).
+starts**, re-applying every migration. That does not make editing an applied migration safe:
+production already has V1 and later migrations applied (see below). It also means anything you
+import in dev disappears when the app restarts. Never keep data you care about in the dev DB. For a
+persistent instance, use the [local production stack](install-and-update.md).
 
 ### Logging in as admin in dev
 
@@ -107,10 +108,11 @@ with `QuarkusTransaction.requiringNew()`.
 
 The full list lives in [`CLAUDE.md`](../CLAUDE.md). The ones that bite most often:
 
-- **Schema changes.** Until the first production deployment, V1 is edited in place. **Once a
-  production instance exists, never edit V1 again.** Add `V2__...sql`, `V3__...sql` instead.
-  Production runs Flyway `migrate-at-start` without `clean`/`repair`, so a changed V1 checksum makes
-  the production app refuse to start.
+- **Schema changes.** V1 and every later migration are deployed to production. **Never edit an
+  applied migration.** Put each schema change in a new `V<N>__description.sql` (next free number).
+  Production runs Flyway `migrate-at-start` without `clean`/`repair`, so a changed checksum makes
+  the production app refuse to start. In dev, `clean-at-start` re-applies everything, so a new
+  migration that repeats something from an earlier one fails with `already exists`.
 - `@Column(length = N)` must match `VARCHAR(N)` in the migration (Hibernate schema validation).
 - camelCase `@ManyToOne` fields need an explicit `@JoinColumn(name = "snake_case")`.
 - Use `@RestForm`, not `@FormParam` (`quarkus-rest` reactive stack).
