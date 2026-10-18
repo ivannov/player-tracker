@@ -36,7 +36,7 @@ This project follows the [AI Unified Process](https://unifiedprocess.ai) (plugin
 1. **Spec first.** Run `/use-case-spec` to update an existing `UC-XXX` or add a new one. A new use case also needs `/use-case-diagram`. A data change also needs `/entity-model`. A new use case starts as `Draft`.
 2. Run the spec checks (below), show the user the spec diff, and **stop for review**. Implement only once the user approves. Never change a `**Status:**` line yourself; propose the new value instead.
 3. Implement against the spec. Every schema change needs a new Flyway migration and the matching `docs/entity_model.md` update in the same change.
-4. Track the change in a Backlog task (see the Backlog section) whose description names the use case(s), and whose acceptance criteria map 1:1 to spec steps, flows, and rules (`UC-XXX A3: …`). Create it at the spec-review stop (status `To Do`), move it to `In Progress` on approval, check each criterion when its test passes, and set `Done` with a final summary at the end. `/change` runs this whole loop.
+4. Track the change in a Backlog task (see the Backlog section) whose description names the use case(s), and whose acceptance criteria map 1:1 to spec steps, flows, and rules (`UC-XXX A3: …`). Create it at the spec-review stop (status `To Do`), move it to `In Progress` on approval, check each criterion when its test passes, and set `Done` with a final summary at the end. `/aiup-work` runs this whole loop.
 
 ### Bug fix
 Decide first whether the code or the spec is wrong:
@@ -110,6 +110,15 @@ Use `/spec-review UC-XXX` for the advisory semantic review before asking for app
 - Test data setup/teardown uses `QuarkusTransaction.requiringNew().call(...)` / `.run(...)`
 - Test profile uses Quarkus Dev Services (PostgreSQL container) — DB credentials are in `%dev` profile only, leaving test profile unconfigured so Dev Services activates
 
+## IntelliJ MCP (`mcp__idea__*`)
+The project is open in IntelliJ IDEA, exposed through the `idea` MCP server. Prefer it over text tools where IDE semantics matter; always pass `projectPath` = this directory.
+- **Navigation:** `search_symbol` to locate classes/methods/fields, `analyze_calls` for callers/callees, `get_symbol_info` for a declaration or signature — instead of grepping identifiers.
+- **Refactoring:** `rename_refactoring` for renaming any Java symbol (updates all references), never sed or multi-file Edit.
+- **Validation after edits:** `get_file_problems` on each touched Java file, then `build_project` (with `filesToRebuild` for small changes) before running tests.
+- **Database:** `list_database_connections` / `introspect_schema` / `execute_sql_query` to inspect the dev PostgreSQL schema when checking migrations or entity mappings (read-only queries unless asked).
+- Keep using `Read`/`Edit`/`Bash` for plain file edits, Qute templates, SQL migrations, and specs; tests still run through Maven or the Quarkus agent as before.
+- If the `idea` tools are unavailable (IDE closed), fall back to the regular tools silently.
+
 ## Experience Playbook (Open Reasoning Format)
 This project records domain-specific traps and validated fixes in `./experiences/`, following the [Open Reasoning Format](https://github.com/glaforge/open-reasoning-format) spec, via the `manage-experience` skill (`manage-experience/SKILL.md`).
 - **Before tackling a non-trivial task** (Hibernate entity mapping, Qute templates, resource tests, scraping), run `python3 manage-experience/scripts/experiences.py list-categories`, then `get-frontmatter --category <domain-id>` for any matching category, then `read-experience --id <EXP-ID>` for a specific match. Apply the "Abstracted Insight" and "Validated Path" before writing code.
@@ -123,3 +132,9 @@ Work is tracked with the `backlog` CLI (Backlog.md, task prefix `LT`, statuses `
 - Write only through `backlog task create` / `backlog task edit`. Never edit `.backlog/` files by hand.
 - `autoCommit` must stay `false` (`backlog config get autoCommit`): the CLI must never commit, since the user commits `.backlog/` together with the spec and code changes.
 - Each task covers one AIUP change. Its acceptance criteria are the qualified spec ids it changes, so a criterion, a test `@DisplayName`, and a spec element share the same id.
+
+<!-- groma:start -->
+## Groma
+
+This project uses Groma. Before you scan, inspect, or curate architecture, or change files for a Backlog task, run `groma agent-instructions` and read the guide it names for that job. When it reports a first scan, ask the user whether they want you to curate the architecture. Do not edit Groma-owned architecture files directly.
+<!-- groma:end -->

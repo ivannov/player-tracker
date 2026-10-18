@@ -1,10 +1,10 @@
 ---
-name: change
+name: aiup-work
 description: >
   One-command AI Unified Process change for Lineup Tracker: updates the specification first,
   stops for the user's approval, then implements, tests and closes the change. Use when the user
-  runs /change UC-XXX <what should change>, /change LT-NNN (work an existing Backlog task),
-  /change <new capability> (no id = new use case), or asks to "fix a gap in UC-XXX", "change the
+  runs /aiup-work UC-XXX <what should change>, /aiup-work LT-NNN (work an existing Backlog task),
+  /aiup-work <new capability> (no id = new use case), or asks to "fix a gap in UC-XXX", "change the
   behaviour of UC-XXX", "add a feature through the AI UP workflow", or to fix a bug "the AI UP way".
 ---
 
