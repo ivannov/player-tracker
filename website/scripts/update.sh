@@ -12,4 +12,4 @@ fi
 build_and_deploy
 
 echo
-echo "==> Updated. App running at http://127.0.0.1:8080"
+echo "==> Updated. App running at http://127.0.0.1:24150"

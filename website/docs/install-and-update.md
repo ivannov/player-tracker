@@ -7,7 +7,7 @@ The "production" deployment is a Docker Compose stack on your own machine
 |---------|-------|---------|
 | `db` | `pgvector/pgvector:pg17` | PostgreSQL; data in the named volume `db-data-prod` |
 | `ollama` | `ollama/ollama` | embedding model for player-name matching; volume `ollama-data-prod` |
-| `app` | built from `src/main/docker/Dockerfile.jvm` | the Quarkus app in `%prod` mode, bound to **127.0.0.1:8080 only** |
+| `app` | built from `src/main/docker/Dockerfile.jvm` | the Quarkus app in `%prod` mode, bound to **127.0.0.1:24150 only** (container port 8080) |
 | `backup` | `prodrigestivill/postgres-backup-local:17` | daily `pg_dump` (7 daily + 4 weekly copies) |
 
 Unlike dev mode, `%prod` never cleans the schema. It only runs pending Flyway migrations at startup.
@@ -51,7 +51,7 @@ The script does the following:
 5. Generates a random `admin` password, stores its bcrypt hash, and **prints the plaintext once**.
    Save it now.
 
-Open http://127.0.0.1:8080 and log in as `admin`. Next, follow
+Open http://127.0.0.1:24150 and log in as `admin`. Next, follow
 [First season: getting data in](first-season.md).
 
 The `DB_PASSWORD` only takes effect when Postgres initializes an empty volume. Editing

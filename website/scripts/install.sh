@@ -27,4 +27,4 @@ build_and_deploy
 set_random_admin_password
 
 echo
-echo "==> Installed. App running at http://127.0.0.1:8080"
+echo "==> Installed. App running at http://127.0.0.1:24150"

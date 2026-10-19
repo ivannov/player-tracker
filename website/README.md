@@ -97,7 +97,7 @@ Postgres, all in Docker, bound to `127.0.0.1` only.
       UPDATE users SET password='<hash>' WHERE username='admin';
       SQL
       ```
-   3. Open http://127.0.0.1:8080 and log in as `admin` with the password you chose.
+   3. Open http://127.0.0.1:24150 and log in as `admin` with the password you chose.
 6. Stop the stack: `docker compose --env-file .env.prod -f docker-compose.prod.yml down`
    (data persists in the `db-data-prod` volume; use `down -v` only if you want to wipe it).
 

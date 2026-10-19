@@ -29,7 +29,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/lineup
       OLLAMA_URL: http://ollama:11434
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:24150:8080"
 
   backup:
     image: prodrigestivill/postgres-backup-local:17
