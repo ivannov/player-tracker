@@ -1,10 +1,10 @@
-{@String username}
+{! UC-001 BR-004: browse menu for every actor; extraction and inbox only for Administrators; no data-entry menu !}
+{#let username=inject:currentUser.username}
 <ul>
-{#if username}
-    <!-- Desktop: three dropdowns -->
+    <!-- Desktop: dropdowns -->
     <li class="desktop-only">
-        <details class="dropdown" id="dd-entry">
-            <summary>Въвеждане</summary>
+        <details class="dropdown" id="dd-browse">
+            <summary>Преглед</summary>
             <ul>
                 <li><a href="/teams">Отбори</a></li>
                 <li><a href="/competitions">Лиги / турнири</a></li>
@@ -14,6 +14,8 @@
             </ul>
         </details>
     </li>
+{#if username}
+    {#if inject:currentUser.isAdmin}
     <li class="desktop-only">
         <details class="dropdown" id="dd-extract">
             <summary>Извличане</summary>
@@ -25,6 +27,7 @@
         </details>
     </li>
     <li class="desktop-only" id="inbox-badge" hx-get="/inbox/badge" hx-trigger="load" hx-swap="outerHTML"></li>
+    {/if}
     <li class="desktop-only">
         <details class="dropdown" id="dd-user">
             <summary>{username}</summary>
@@ -35,18 +38,23 @@
             </ul>
         </details>
     </li>
+{#else}
+    <li><a href="/login">Вход</a></li>
+{/if}
 
     <!-- Mobile: burger -->
     <li class="mobile-only">
         <details class="dropdown" id="dd-burger">
             <summary aria-label="Меню">☰</summary>
             <ul>
-                <li><strong>Въвеждане</strong></li>
+                <li><strong>Преглед</strong></li>
                 <li><a href="/teams">Отбори</a></li>
                 <li><a href="/competitions">Лиги / турнири</a></li>
                 <li><a href="/participations">Участия</a></li>
                 <li><a href="/players">Играчи</a></li>
                 <li><a href="/matches">Мачове</a></li>
+{#if username}
+    {#if inject:currentUser.isAdmin}
                 <li><hr></li>
                 <li><strong>Извличане</strong></li>
                 <li><a href="#">Извлечи за днес</a></li>
@@ -54,12 +62,13 @@
                 <li><a href="#">Планировчик</a></li>
                 <li><hr></li>
                 <li><a href="/inbox">Неясноти</a></li>
+    {/if}
+                <li><hr></li>
                 <li><a href="#">Смени парола</a></li>
                 <li><a href="#" class="logout" onclick="document.getElementById('logout-form').submit(); return false;">Изход</a></li>
+{/if}
             </ul>
         </details>
     </li>
-{#else}
-    <li><a href="/login">Вход</a></li>
-{/if}
 </ul>
+{/let}

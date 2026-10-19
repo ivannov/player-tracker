@@ -37,10 +37,10 @@ public class PlayerResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, boolean isAdmin, List<Player> players, String q);
-        public static native TemplateInstance detail(String username, boolean isAdmin, Player player, List<PlayerCareerRow> timeline,
+        public static native TemplateInstance list(boolean isAdmin, List<Player> players, String q);
+        public static native TemplateInstance detail(boolean isAdmin, Player player, List<PlayerCareerRow> timeline,
                 List<MergeCandidate> mergeCandidates, String error);
-        public static native TemplateInstance form(String username, Player player);
+        public static native TemplateInstance form(Player player);
     }
 
     public record PlayerCareerRow(PlayerAppearance appearance, List<MatchEvent> events) {
@@ -68,7 +68,7 @@ public class PlayerResource {
         List<Player> players = (q == null || q.isBlank())
                 ? Player.listAll(Sort.by("names"))
                 : Player.find("LOWER(names) LIKE LOWER(?1) ORDER BY names", "%" + q.trim() + "%").list();
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), players, q);
+        return Templates.list(currentUser.isAdmin(), players, q);
     }
 
     @GET
@@ -76,7 +76,7 @@ public class PlayerResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(currentUser.username(), new Player());
+        return Templates.form(new Player());
     }
 
     @GET
@@ -86,7 +86,7 @@ public class PlayerResource {
     public TemplateInstance editForm(@PathParam("id") Long id) {
         Player p = Player.findById(id);
         if (p == null) throw new NotFoundException();
-        return Templates.form(currentUser.username(), p);
+        return Templates.form(p);
     }
 
     @GET
@@ -123,7 +123,7 @@ public class PlayerResource {
                 .toList();
 
         List<MergeCandidate> mergeCandidates = currentUser.isAdmin() ? findMergeCandidates(player) : List.of();
-        return Templates.detail(currentUser.username(), currentUser.isAdmin(), player, timeline, mergeCandidates, error);
+        return Templates.detail(currentUser.isAdmin(), player, timeline, mergeCandidates, error);
     }
 
     // Likely duplicates of this player (typically the record created after a transfer), by name

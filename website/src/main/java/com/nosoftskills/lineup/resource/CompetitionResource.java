@@ -32,8 +32,8 @@ public class CompetitionResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, boolean isAdmin, List<Competition> competitions);
-        public static native TemplateInstance form(String username, Competition competition, CompetitionExtractionConfig extractionConfig);
+        public static native TemplateInstance list(boolean isAdmin, List<Competition> competitions);
+        public static native TemplateInstance form(Competition competition, CompetitionExtractionConfig extractionConfig);
     }
 
     public static class CompetitionForm {
@@ -50,7 +50,7 @@ public class CompetitionResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance list() {
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), Competition.listAll());
+        return Templates.list(currentUser.isAdmin(), Competition.listAll());
     }
 
     @GET
@@ -58,7 +58,7 @@ public class CompetitionResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(currentUser.username(), new Competition(), null);
+        return Templates.form(new Competition(), null);
     }
 
     @GET
@@ -69,7 +69,7 @@ public class CompetitionResource {
         Competition c = Competition.findById(id);
         if (c == null) throw new NotFoundException();
         CompetitionExtractionConfig config = findConfig(id);
-        return Templates.form(currentUser.username(), c, config);
+        return Templates.form(c, config);
     }
 
     @POST

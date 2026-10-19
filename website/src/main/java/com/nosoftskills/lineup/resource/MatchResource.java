@@ -49,12 +49,12 @@ public class MatchResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, boolean isAdmin, List<Match> matches,
+        public static native TemplateInstance list(boolean isAdmin, List<Match> matches,
                 List<Competition> competitions, Long competitionId, String date, String error);
-        public static native TemplateInstance detail(String username, boolean isAdmin, Match match,
+        public static native TemplateInstance detail(boolean isAdmin, Match match,
                 List<AppearanceRow> homeAppearances, List<AppearanceRow> awayAppearances,
                 List<Player> allPlayers, MatchEventType[] eventTypes, String error);
-        public static native TemplateInstance form(String username, List<Participation> participations, String error);
+        public static native TemplateInstance form(List<Participation> participations, String error);
     }
 
     public record AppearanceRow(PlayerAppearance appearance, List<MatchEvent> events) {
@@ -114,7 +114,7 @@ public class MatchResource {
             matches = Match.find(baseQuery + " ORDER BY m.date DESC, m.id DESC").list();
         }
 
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), matches, Competition.listAll(), competitionId, date, error);
+        return Templates.list(currentUser.isAdmin(), matches, Competition.listAll(), competitionId, date, error);
     }
 
     @GET
@@ -150,7 +150,7 @@ public class MatchResource {
 
         List<Player> allPlayers = currentUser.isAdmin() ? Player.listAll(Sort.by("names")) : List.of();
 
-        return Templates.detail(currentUser.username(), currentUser.isAdmin(), match, home, away,
+        return Templates.detail(currentUser.isAdmin(), match, home, away,
                 allPlayers, MatchEventType.values(), error);
     }
 
@@ -159,7 +159,7 @@ public class MatchResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(currentUser.username(), participationPickerOptions(), null);
+        return Templates.form(participationPickerOptions(), null);
     }
 
     @POST
@@ -175,7 +175,7 @@ public class MatchResource {
                 || !home.season.equals(away.season)) {
             return Response.status(422)
                     .type(MediaType.TEXT_HTML)
-                    .entity(Templates.form(currentUser.username(), participationPickerOptions(),
+                    .entity(Templates.form(participationPickerOptions(),
                             "Домакинът и гостът трябва да са от една и съща лига/турнир и сезон."))
                     .build();
         }

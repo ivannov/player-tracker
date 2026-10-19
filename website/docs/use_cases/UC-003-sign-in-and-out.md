@@ -18,7 +18,7 @@
 1. Actor opens the sign-in page.
 2. Actor enters username and password and submits.
 3. System verifies the credentials.
-4. System shows the personal start page greeting the actor by username; the navigation now shows data-entry, extraction and account menus.
+4. System shows the personal start page greeting the actor by username; the navigation now also shows the account menu, and to Administrators the extraction menu and the inbox (UC-001 BR-004).
 5. Actor works with the system according to the actor's role.
 6. Actor chooses to sign out.
 7. System ends the session and shows the public home page.

@@ -104,10 +104,10 @@ A follow-up pass on 2026-08-03 closed out every case left as "NOT EXECUTED" in t
 **Expected**: Treated as logged out — redirect to login, no crash.
 **Pass/Fail**: PASS — cookie deleted mid-session via devtools; next nav click is cleanly treated as logged-out (public page rendered, no crash).
 
-### MT-2.6 — USER role vs ADMIN role — nav shows same links, authorization differs (known design gap)
-**Steps**: Log in as a USER-role account. Compare the nav to an ADMIN session.
-**Expected**: Per code, the nav does **not** hide admin-only links for USER (`appNav.html` doesn't check `isAdmin`) — a USER will see "Въвеждане" dropdown items identical to ADMIN. Confirm this, then click through to e.g. `/teams/new` as USER and confirm it correctly 403s despite being linked from the nav. Flag as a UX rough edge if not already accepted (dead-end links for USER role) even though the underlying authorization is correct.
-**Pass/Fail**: CONFIRMED as expected/accepted gap — USER-role nav shows the same Въвеждане/Извличане dropdowns as ADMIN, but the underlying routes correctly 403 for USER regardless. Already tracked as a known UX rough edge (see section 14), not filed as a new defect.
+### MT-2.6 — USER role vs ADMIN role — nav (UC-001 BR-004)
+**Steps**: Log in as a USER-role account. Compare the nav to an ADMIN session. As USER, open e.g. `/teams/new` directly.
+**Expected**: Both roles see the "Преглед" dropdown and their user menu. Only ADMIN sees the "Извличане" dropdown and the inbox badge. There is no "Въвеждане" dropdown for either role; add/edit/import controls live on the list pages and are shown only to ADMIN. `/teams/new` returns 403 for USER.
+**Pass/Fail**: Not yet run against the LT-032 nav.
 
 ### MT-2.7 — No self-registration / no admin user-provisioning UI
 **Steps**: Look for any sign-up link or "manage users" admin screen.
@@ -436,17 +436,17 @@ Requires real bfu-tournaments.com / ebfu.net data for a date where matches actua
 
 ### MT-11.7 — Badge for USER role
 **Steps**: Log in as USER, load any page.
-**Expected**: Badge endpoint returns 0 regardless of actual pending count (by design — non-admins never see real counts), no 403 (deliberately `@Authenticated`, not `@RolesAllowed("ADMIN")`).
-**Pass/Fail**: PASS — with a real pending review present, the badge endpoint returns 0 for the USER role (verified against the actual ADMIN-visible count of 1 at the same moment); `/inbox` itself correctly 403s for USER.
+**Expected**: The nav does not request the badge for USER (UC-001 BR-004). Calling `/inbox/badge` directly returns 403 (`@RolesAllowed("ADMIN")`).
+**Pass/Fail**: Not yet run against the LT-032 change (previous PASS expected 200 with an empty badge).
 
 ---
 
 ## 12. Cross-Cutting UI / UX / Usability
 
 ### MT-12.1 — Nav dropdowns — desktop
-**Steps**: As ADMIN, open each of the 3 dropdowns ("Въвеждане", "Извличане", user menu) one at a time, and one after another without closing the first.
+**Steps**: As ADMIN, open each of the 3 dropdowns ("Преглед", "Извличане", user menu) one at a time, and one after another without closing the first.
 **Expected**: Dropdowns open/close cleanly, don't overlap or clip, closing one when opening another (or click-outside-to-close) works, no leftover invisible overlay blocking clicks.
-**Pass/Fail**: PASS — the ADMIN dropdowns (Въвеждане, Извличане, user menu) open and close cleanly with no overlap/clipping.
+**Pass/Fail**: Not yet run against the LT-032 nav (previous PASS covered the old Въвеждане/Извличане/user menu set).
 
 ### MT-12.2 — Dead nav links
 **Steps**: Click "Извлечи за днес", "Планировчик", "Смени парола".

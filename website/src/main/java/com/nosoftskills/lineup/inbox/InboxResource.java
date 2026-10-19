@@ -2,11 +2,9 @@ package com.nosoftskills.lineup.inbox;
 
 import com.nosoftskills.lineup.inbox.AmbiguityInboxService.ReviewView;
 import com.nosoftskills.lineup.model.Team;
-import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.panache.common.Sort;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
@@ -33,12 +31,9 @@ public class InboxResource {
     @Inject
     AmbiguityInboxService inboxService;
 
-    @Inject
-    CurrentUser currentUser;
-
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance page(String username, List<ReviewView> reviews, List<Team> teams);
+        public static native TemplateInstance page(List<ReviewView> reviews, List<Team> teams);
         public static native TemplateInstance list(List<ReviewView> reviews, String error, List<Team> teams);
         public static native TemplateInstance badge(long pendingCount);
     }
@@ -47,20 +42,16 @@ public class InboxResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showInbox() {
-        return Templates.page(currentUser.username(), inboxService.listPending(), Team.listAll(Sort.by("name")));
+        return Templates.page(inboxService.listPending(), Team.listAll(Sort.by("name")));
     }
 
-    // Not ADMIN-restricted: appNav shows this to every logged-in user (matching how the rest of
-    // the nav's admin-oriented links are visible to any authenticated user and rely on the target
-    // resource's own @RolesAllowed for enforcement), so a non-admin's automatic hx-trigger="load"
-    // fetch must succeed with an empty badge rather than 403.
+    // UC-001 BR-004: the inbox badge is shown only to Administrators
     @GET
     @Path("/badge")
-    @Authenticated
+    @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance badge() {
-        long pendingCount = currentUser.isAdmin() ? inboxService.countPending() : 0;
-        return Templates.badge(pendingCount);
+        return Templates.badge(inboxService.countPending());
     }
 
     @POST

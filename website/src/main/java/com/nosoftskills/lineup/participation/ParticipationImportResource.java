@@ -10,7 +10,6 @@ import com.nosoftskills.lineup.model.TeamAlias;
 import com.nosoftskills.lineup.model.TeamFormation;
 import com.nosoftskills.lineup.scraping.BfuLeagueScraperService;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
-import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -43,21 +42,18 @@ public class ParticipationImportResource {
     @Inject
     TeamResolutionService teamResolutionService;
 
-    @Inject
-    CurrentUser currentUser;
-
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance step1(String username, List<Competition> competitions, String error,
+        public static native TemplateInstance step1(List<Competition> competitions, String error,
                 String url, Long competitionId, String season);
 
-        public static native TemplateInstance step2(String username, List<TeamResolutionRow> rows,
+        public static native TemplateInstance step2(List<TeamResolutionRow> rows,
                 Long competitionId, String season, List<Team> allTeams, FormationType[] formationTypes);
 
         public static native TemplateInstance formationsSelect(List<TeamFormation> formations,
                 FormationType[] formationTypes);
 
-        public static native TemplateInstance step3(String username, List<ImportReviewRow> rows,
+        public static native TemplateInstance step3(List<ImportReviewRow> rows,
                 Long competitionId, String season);
     }
 
@@ -65,7 +61,7 @@ public class ParticipationImportResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showStep1() {
-        return Templates.step1(currentUser.username(), Competition.listAll(), null, null, null, null);
+        return Templates.step1(Competition.listAll(), null, null, null, null);
     }
 
     @POST
@@ -77,7 +73,7 @@ public class ParticipationImportResource {
         try {
             names = scraperService.extractTeamNames(url);
         } catch (BfuScraperException e) {
-            return Templates.step1(currentUser.username(), Competition.listAll(),
+            return Templates.step1(Competition.listAll(),
                     "Грешка при извличане: " + e.getMessage(), url, competitionId, season);
         }
 
@@ -95,7 +91,7 @@ public class ParticipationImportResource {
                 })
                 .toList();
 
-        return Templates.step2(currentUser.username(), rows, competitionId, season,
+        return Templates.step2(rows, competitionId, season,
                 allTeams, FormationType.values());
     }
 
@@ -203,7 +199,7 @@ public class ParticipationImportResource {
                     teamDisplay, formationDisplay, action));
         }
 
-        return Templates.step3(currentUser.username(), rows, competitionId, season);
+        return Templates.step3(rows, competitionId, season);
     }
 
     @POST

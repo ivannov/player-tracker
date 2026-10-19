@@ -3,7 +3,10 @@ package com.nosoftskills.lineup.security;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
+// Named so the shared nav tag can read the role via {inject:currentUser.isAdmin}
+@Named
 @RequestScoped
 public class CurrentUser {
 

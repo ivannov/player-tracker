@@ -43,9 +43,9 @@ public class ParticipationResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, boolean isAdmin, List<Participation> participations);
+        public static native TemplateInstance list(boolean isAdmin, List<Participation> participations);
 
-        public static native TemplateInstance form(String username, Long groupId,
+        public static native TemplateInstance form(Long groupId,
                 Long teamId, String teamName, Long competitionId, String competitionName, String season,
                 List<Team> teams, List<Competition> competitions,
                 FormationType[] allTypes, List<FormationType> selectedTypes, String error);
@@ -67,7 +67,7 @@ public class ParticipationResource {
                 "JOIN FETCH p.competition " +
                 "ORDER BY p.season DESC, tf.team.name"
         ).list();
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), participations);
+        return Templates.list(currentUser.isAdmin(), participations);
     }
 
     @GET
@@ -76,7 +76,6 @@ public class ParticipationResource {
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
         return Templates.form(
-                currentUser.username(),
                 null, null, null, null, null, null,
                 Team.listAll(), Competition.listAll(),
                 FormationType.values(), DEFAULT_SELECTED, null
@@ -100,7 +99,6 @@ public class ParticipationResource {
         Competition comp = ref.competition;
 
         return Templates.form(
-                currentUser.username(),
                 id, team.id, team.name, comp.id, comp.name, ref.season,
                 List.of(), List.of(),
                 FormationType.values(), selectedTypes, null
@@ -144,8 +142,7 @@ public class ParticipationResource {
     private Response newFormError(String message) {
         return Response.status(422)
                 .type(MediaType.TEXT_HTML)
-                .entity(Templates.form(currentUser.username(),
-                        null, null, null, null, null, null,
+                .entity(Templates.form(null, null, null, null, null, null,
                         Team.listAll(), Competition.listAll(),
                         FormationType.values(), DEFAULT_SELECTED, message))
                 .build();

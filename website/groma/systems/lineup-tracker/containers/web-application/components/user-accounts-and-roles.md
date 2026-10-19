@@ -19,4 +19,4 @@ groma:
 description: Stored accounts and roles, and the current user's identity
 ---
 
-The User and Role entities that Quarkus Security JPA reads for form login, with ADMIN and USER seeded by migration. The request-scoped current-user helper gives pages the username and whether to show admin-only controls; access itself is enforced by role annotations on each page.
+The User and Role entities that Quarkus Security JPA reads for form login, with ADMIN and USER seeded by migration. The request-scoped current-user helper is a named bean, so the shared navigation reads the username and the administrator role from it directly, and pages use it to decide whether to show admin-only controls; access itself is enforced by role annotations on each page.

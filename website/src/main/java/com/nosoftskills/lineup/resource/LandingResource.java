@@ -1,6 +1,5 @@
 package com.nosoftskills.lineup.resource;
 
-import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.inject.Inject;
@@ -14,15 +13,11 @@ import jakarta.ws.rs.core.MediaType;
 public class LandingResource {
 
     @Inject
-    CurrentUser currentUser;
-
-    @Inject
     EntityManager em;
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance landing(String username,
-                long teamCount, long competitionCount, long participationCount);
+        public static native TemplateInstance landing(long teamCount, long competitionCount, long participationCount, long matchCount);
     }
 
     @GET
@@ -30,11 +25,12 @@ public class LandingResource {
     public TemplateInstance landing() {
         Object[] counts = (Object[]) em.createNativeQuery(
                 "SELECT (SELECT COUNT(*) FROM teams), (SELECT COUNT(*) FROM competitions), " +
-                "(SELECT COUNT(*) FROM participations)"
+                "(SELECT COUNT(*) FROM participations), (SELECT COUNT(*) FROM matches)"
         ).getSingleResult();
         long teamCount = ((Number) counts[0]).longValue();
         long competitionCount = ((Number) counts[1]).longValue();
         long participationCount = ((Number) counts[2]).longValue();
-        return Templates.landing(currentUser.username(), teamCount, competitionCount, participationCount);
+        long matchCount = ((Number) counts[3]).longValue();
+        return Templates.landing(teamCount, competitionCount, participationCount, matchCount);
     }
 }

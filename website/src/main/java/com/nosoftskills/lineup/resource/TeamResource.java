@@ -40,8 +40,8 @@ public class TeamResource {
 
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance list(String username, boolean isAdmin, List<Team> teams);
-        public static native TemplateInstance form(String username, Team team,
+        public static native TemplateInstance list(boolean isAdmin, List<Team> teams);
+        public static native TemplateInstance form(Team team,
                 FormationType[] allTypes, List<FormationType> selectedTypes);
     }
 
@@ -55,7 +55,7 @@ public class TeamResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance list() {
-        return Templates.list(currentUser.username(), currentUser.isAdmin(), Team.listAll());
+        return Templates.list(currentUser.isAdmin(), Team.listAll());
     }
 
     @GET
@@ -63,7 +63,7 @@ public class TeamResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance newForm() {
-        return Templates.form(currentUser.username(), new Team(),
+        return Templates.form(new Team(),
                 FormationType.values(), DEFAULT_SELECTED);
     }
 
@@ -76,7 +76,7 @@ public class TeamResource {
         if (t == null) throw new NotFoundException();
         List<FormationType> selected = TeamFormation.<TeamFormation>find("team.id = ?1", id).list()
                 .stream().map(tf -> tf.type).collect(Collectors.toList());
-        return Templates.form(currentUser.username(), t,
+        return Templates.form(t,
                 FormationType.values(), selected);
     }
 

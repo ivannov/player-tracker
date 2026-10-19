@@ -1,7 +1,7 @@
 {#include layout}
 
 {#nav}
-    {#appNav username=username /}
+    {#appNav /}
 {/nav}
 
 {#footerNote}Само за информационни цели.{/footerNote}
@@ -67,6 +67,11 @@
                 <h3>Участия</h3>
                 <p>{participationCount} участия на отборни формации по сезони.</p>
                 <a href="/participations" role="button" class="outline">Разгледай участията</a>
+            </article>
+            <article>
+                <h3>Мачове</h3>
+                <p>{matchCount} мача със състави, резултати и събития.</p>
+                <a href="/matches" role="button" class="outline">Разгледай мачовете</a>
             </article>
         </div>
     </section>

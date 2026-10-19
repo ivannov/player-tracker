@@ -2,7 +2,6 @@ package com.nosoftskills.lineup.extraction;
 
 import com.nosoftskills.lineup.model.Competition;
 import com.nosoftskills.lineup.scraping.BfuScraperException;
-import com.nosoftskills.lineup.security.CurrentUser;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.annotation.security.RolesAllowed;
@@ -30,19 +29,16 @@ public class MatchExtractionResource {
     @Inject
     MatchExtractionService extractionService;
 
-    @Inject
-    CurrentUser currentUser;
-
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance step1(String username, List<Competition> competitions, String today,
+        public static native TemplateInstance step1(List<Competition> competitions, String today,
                 String error, Long competitionId, String fixturesUrl, String season, String date);
 
-        public static native TemplateInstance step2(String username, List<ExtractionRowView> rows,
+        public static native TemplateInstance step2(List<ExtractionRowView> rows,
                 Long competitionId, String fixturesUrl, String season, String date,
                 Counts counts);
 
-        public static native TemplateInstance step3(String username, List<ExtractionRowView> rows,
+        public static native TemplateInstance step3(List<ExtractionRowView> rows,
                 Long competitionId, String fixturesUrl, String season, String date,
                 Counts counts);
     }
@@ -54,7 +50,7 @@ public class MatchExtractionResource {
     @RolesAllowed("ADMIN")
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance showStep1(@QueryParam("error") String error) {
-        return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+        return Templates.step1(Competition.listAll(), LocalDate.now().toString(),
                 error, null, null, null, null);
     }
 
@@ -70,7 +66,7 @@ public class MatchExtractionResource {
         try {
             parsedDate = parseDate(date);
         } catch (IllegalArgumentException e) {
-            return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+            return Templates.step1(Competition.listAll(), LocalDate.now().toString(),
                     "Невалидна дата: " + date, competitionId, fixturesUrl, season, date);
         }
 
@@ -78,12 +74,12 @@ public class MatchExtractionResource {
         try {
             rows = extractionService.preview(new ExtractionRequest(competitionId, fixturesUrl, season, parsedDate));
         } catch (BfuScraperException e) {
-            return Templates.step1(currentUser.username(), Competition.listAll(), LocalDate.now().toString(),
+            return Templates.step1(Competition.listAll(), LocalDate.now().toString(),
                     "Грешка при извличане: " + e.getMessage(), competitionId, fixturesUrl, season, date);
         }
 
         List<ExtractionRowView> rowViews = rows.stream().map(ExtractionRowView::from).toList();
-        return Templates.step2(currentUser.username(), rowViews, competitionId, fixturesUrl, season, date,
+        return Templates.step2(rowViews, competitionId, fixturesUrl, season, date,
                 aggregate(rowViews));
     }
 
@@ -121,7 +117,7 @@ public class MatchExtractionResource {
                     parseIntOrZero(get(totalPlayerCount, i))));
         }
 
-        return Templates.step3(currentUser.username(), rowViews, competitionId, fixturesUrl, season, date,
+        return Templates.step3(rowViews, competitionId, fixturesUrl, season, date,
                 aggregate(rowViews));
     }
 

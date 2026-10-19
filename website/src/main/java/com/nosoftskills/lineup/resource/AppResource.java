@@ -3,8 +3,6 @@ package com.nosoftskills.lineup.resource;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -19,18 +17,15 @@ import java.net.URI;
 @Authenticated
 public class AppResource {
 
-    @Inject
-    SecurityIdentity identity;
-
     @CheckedTemplate
     public static class Templates {
-        public static native TemplateInstance index(String username);
+        public static native TemplateInstance index();
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
-        return Templates.index(identity.getPrincipal().getName());
+        return Templates.index();
     }
 
     @POST

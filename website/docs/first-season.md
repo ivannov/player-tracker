@@ -18,7 +18,7 @@ already appeared for that team.**
 
 ## 1. Create competitions
 
-**Въвеждане → Лиги / турнири → + Добави** (`/competitions/new`)
+**Преглед → Лиги / турнири → + Добави** (`/competitions/new`)
 
 | Field | Value |
 |-------|-------|
@@ -36,7 +36,7 @@ The results page's season parameter uses a dash (`2025-2026`). The app's season 
 
 ## 2. Import teams and participations
 
-**Въвеждане → Участия → Импорт от БФС** (`/participations/import`)
+**Преглед → Участия → Импорт от БФС** (`/participations/import`)
 
 ### Import the men's leagues first, then the youth leagues
 

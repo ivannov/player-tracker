@@ -10,6 +10,7 @@ import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -134,10 +135,10 @@ class InboxResourceTest {
 
     @Test
     @TestSecurity(user = "user", roles = {"USER"})
-    void badgeIsEmptyForNonAdmin() {
+    @DisplayName("UC-001 BR-004: the inbox badge is forbidden for non-admins")
+    void badgeForbiddenForNonAdmin() {
         given().when().get("/inbox/badge")
-                .then().statusCode(200)
-                .body(not(containsString("<a")));
+                .then().statusCode(403);
 
         Mockito.verify(inboxService, Mockito.never()).countPending();
     }
